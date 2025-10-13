@@ -14,6 +14,11 @@ interface BookingData {
   deliveryFee: number;
   totalPrice: number;
   savings: number;
+  // User contact information
+  email: string;
+  phoneNumber: string;
+  firstName: string;
+  lastName: string;
 }
 
 const ValetStorageBooking = () => {
@@ -30,7 +35,12 @@ const ValetStorageBooking = () => {
     basePrice: 0,
     deliveryFee: 0,
     totalPrice: 0,
-    savings: 0
+    savings: 0,
+    // User contact information
+    email: '',
+    phoneNumber: '',
+    firstName: '',
+    lastName: ''
   });
 
   // Pricing matrices - used for calculating storage costs
@@ -121,6 +131,26 @@ const ValetStorageBooking = () => {
     if (currentStep === 2) {
       if (!bookingData.months) {
         alert('Please select a storage duration (bins are optional).');
+        return false;
+      }
+      return true;
+    }
+    if (currentStep === 4) {
+      if (!bookingData.email || !bookingData.phoneNumber || !bookingData.firstName || !bookingData.lastName) {
+        alert('Please fill in all required contact information before completing your booking.');
+        return false;
+      }
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(bookingData.email)) {
+        alert('Please enter a valid email address.');
+        return false;
+      }
+      // Basic phone validation (at least 10 digits)
+      const phoneRegex = /^\d{10,}$/;
+      const cleanPhone = bookingData.phoneNumber.replace(/\D/g, '');
+      if (!phoneRegex.test(cleanPhone)) {
+        alert('Please enter a valid phone number (at least 10 digits).');
         return false;
       }
       return true;
@@ -456,7 +486,83 @@ const ValetStorageBooking = () => {
       <div className="space-y-8">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 mb-2">Review Your Booking</h2>
-          <p className="text-gray-600">Please review your selections before completing your booking</p>
+          <p className="text-gray-600">Please review your selections and provide your contact information</p>
+        </div>
+
+        {/* User Information Form */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+          <p className="text-sm text-gray-600 mb-6">We need your contact details to schedule pickup and delivery</p>
+          
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                First Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={bookingData.firstName}
+                onChange={(e) => setBookingData(prev => ({ ...prev, firstName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Enter your first name"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Last Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={bookingData.lastName}
+                onChange={(e) => setBookingData(prev => ({ ...prev, lastName: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Enter your last name"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                value={bookingData.email}
+                onChange={(e) => setBookingData(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Enter your email address"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                value={bookingData.phoneNumber}
+                onChange={(e) => setBookingData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="(555) 123-4567"
+                required
+              />
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start">
+              <span className="text-blue-600 mr-2">🔒</span>
+              <div>
+                <p className="text-sm text-blue-800 font-medium">Your information is secure</p>
+                <p className="text-xs text-blue-700 mt-1">
+                  We only use your contact information to schedule pickup and delivery. We never share your data with third parties.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Booking Summary */}
@@ -603,25 +709,37 @@ const ValetStorageBooking = () => {
 
         {/* Progress Steps */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between relative">
+            {/* Background line */}
+            <div className="absolute top-6 left-6 right-6 h-0.5 bg-gray-300 z-0"></div>
+            
+            {/* Progress line */}
+            <div 
+              className="absolute top-6 left-6 h-0.5 bg-primary-600 z-10 transition-all duration-500"
+              style={{ 
+                width: currentStep > 1 ? `${((currentStep - 1) / 3) * 100}%` : '0%',
+                maxWidth: 'calc(100% - 48px)'
+              }}
+            ></div>
+            
             {[
               { step: 1, title: "Plan", icon: "📋" },
               { step: 2, title: "Duration", icon: "📅" },
               { step: 3, title: "Add-ons", icon: "➕" },
               { step: 4, title: "Review", icon: "✅" },
             ].map((item, index) => (
-              <div key={item.step} className="flex items-center">
+              <div key={item.step} className="flex flex-col items-center relative z-20">
                 <div
                   className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all cursor-pointer ${
                     currentStep >= item.step
-                      ? "bg-primary-600 border-primary-600 text-white"
-                      : "bg-white border-gray-300 text-gray-400"
-                  }`}
+                      ? "bg-primary-600 border-primary-600 text-white shadow-lg"
+                      : "bg-white border-gray-300 text-gray-400 hover:border-gray-400"
+                  } ${currentStep === item.step ? "ring-4 ring-orange-200 scale-110 border-orange-500" : ""}`}
                   onClick={() => setCurrentStep(item.step)}
                 >
                   <span className="text-lg">{item.icon}</span>
                 </div>
-                <div className="ml-3">
+                <div className="mt-3 text-center">
                   <div
                     className={`text-sm font-medium ${
                       currentStep >= item.step
@@ -632,22 +750,16 @@ const ValetStorageBooking = () => {
                     Step {item.step}
                   </div>
                   <div
-                    className={`text-xs ${
+                    className={`text-xs mt-1 ${
                       currentStep >= item.step
-                        ? "text-gray-700"
+                        ? "text-gray-700 font-medium"
                         : "text-gray-400"
                     }`}
                   >
                     {item.title}
                   </div>
+                 
                 </div>
-                {index < 3 && (
-                  <div
-                    className={`flex-1 h-0.5 mx-4 ${
-                      currentStep > item.step ? "bg-primary-600" : "bg-gray-300"
-                    }`}
-                  />
-                )}
               </div>
             ))}
           </div>
