@@ -147,7 +147,7 @@ export default function WhoWeServe() {
                   </svg>
                 </div>
                 <blockquote className="text-base text-text-secondary mb-4 italic">
-                  "MyAssetLocker gave me peace of mind during our home renovation. Knowing our valuables were safely stored and digitally documented made the whole process stress-free."
+                  &ldquo;MyAssetLocker gave me peace of mind during our home renovation. Knowing our valuables were safely stored and digitally documented made the whole process stress-free.&rdquo;
                 </blockquote>
                 <div className="text-lg font-semibold text-text-primary">Sarah M.</div>
                 <div className="text-sm text-text-secondary">Home Owner, San Francisco</div>
@@ -277,7 +277,7 @@ export default function WhoWeServe() {
                   </svg>
                 </div>
                 <blockquote className="text-base text-text-secondary mb-4 italic">
-                  "The compliance reporting features saved us hours during our annual audit. Having everything digitally documented and easily accessible was a game-changer."
+                  &ldquo;The compliance reporting features saved us hours during our annual audit. Having everything digitally documented and easily accessible was a game-changer.&rdquo;
                 </blockquote>
                 <div className="text-lg font-semibold text-text-primary">Michael R.</div>
                 <div className="text-sm text-text-secondary">CFO, Tech Startup</div>
@@ -407,7 +407,7 @@ export default function WhoWeServe() {
                   </svg>
                 </div>
                 <blockquote className="text-base text-text-secondary mb-4 italic">
-                  "Partnering with MyAssetLocker has revolutionized our claims process. The detailed documentation and verification features have reduced our investigation time significantly."
+                  &ldquo;Partnering with MyAssetLocker has revolutionized our claims process. The detailed documentation and verification features have reduced our investigation time significantly.&rdquo;
                 </blockquote>
                 <div className="text-lg font-semibold text-text-primary">Jennifer L.</div>
                 <div className="text-sm text-text-secondary">Claims Manager, Regional Insurance</div>

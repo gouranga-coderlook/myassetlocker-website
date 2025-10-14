@@ -444,8 +444,8 @@ export default function Home() {
                     </div>
                   </div>
                   <p className="text-base text-text-secondary mb-4">
-                    "The valet storage service is incredible. They picked up my
-                    seasonal items and delivered them right when I needed them."
+                    &ldquo;The valet storage service is incredible. They picked up my
+                    seasonal items and delivered them right when I needed them.&rdquo;
                   </p>
                   <div className="flex items-center">
                     <div className="w-10 h-10 bg-secondary-500 rounded-full flex items-center justify-center text-white font-semibold mr-3">
@@ -477,9 +477,9 @@ export default function Home() {
                     </div>
                   </div>
                   <p className="text-base text-text-secondary mb-4">
-                    "As an insurance agent, MyAssetLocker makes my job so much
+                    &ldquo;As an insurance agent, MyAssetLocker makes my job so much
                     easier. Claims are processed 3x faster with their detailed
-                    reports."
+                    reports.&rdquo;
                   </p>
                   <div className="flex items-center">
                     <div className="w-10 h-10 bg-success-500 rounded-full flex items-center justify-center text-white font-semibold mr-3">

@@ -85,7 +85,7 @@ export function Analytics() {
 
 // Hook for tracking custom events
 export function useAnalytics() {
-  const trackEvent = (eventName: string, properties?: Record<string, any>) => {
+  const trackEvent = (eventName: string, properties?: Record<string, unknown>) => {
     if (typeof window !== 'undefined') {
       console.log('Event tracked:', eventName, properties);
       // Example: Send to analytics service

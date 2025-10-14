@@ -160,7 +160,7 @@ export default function DigitalLocker() {
                 </div>
                 <p className="text-base text-text-secondary text-center">
                   Know that your valuable assets are documented, organized, and
-                  ready for any situation. Sleep better knowing you're prepared.
+                  ready for any situation. Sleep better knowing you&apos;re prepared.
                 </p>
               </div>
             </div>

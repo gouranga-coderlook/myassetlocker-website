@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { lightTheme, darkTheme, createCSSVariableMap } from '@/lib/theme';
 
 type ThemeMode = 'light' | 'dark';
@@ -74,19 +74,19 @@ export function ThemeProvider({
     }
   }, [theme, mounted, storageKey]);
 
-  const setTheme = (newTheme: ThemeMode) => {
+  const setTheme = useCallback((newTheme: ThemeMode) => {
     setThemeState(newTheme);
-  };
+  }, []);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme(theme === 'light' ? 'dark' : 'light');
-  };
+  }, [theme, setTheme]);
 
   const contextValue = useMemo(() => ({
     theme,
     toggleTheme,
     setTheme
-  }), [theme]);
+  }), [theme, toggleTheme, setTheme]);
 
   // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {

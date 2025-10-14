@@ -274,7 +274,7 @@ export const darkTheme = {
 } as const;
 
 // Helper function to convert theme tokens to CSS variable map
-export function createCSSVariableMap(theme: typeof lightTheme, prefix = '') {
+export function createCSSVariableMap(theme: typeof lightTheme | typeof darkTheme, prefix = '') {
   const cssVars: Record<string, string> = {};
 
   // Helper function to recursively flatten nested objects
@@ -283,10 +283,10 @@ export function createCSSVariableMap(theme: typeof lightTheme, prefix = '') {
       const cssVarName = parentKey ? `${parentKey}-${key}` : key;
       
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        flattenObject(value, cssVarName);
+        flattenObject(value as Record<string, unknown>, cssVarName);
       } else {
         const varName = prefix ? `--${prefix}-${cssVarName}` : `--${cssVarName}`;
-        cssVars[varName] = value;
+        cssVars[varName] = value as string;
       }
     }
   }

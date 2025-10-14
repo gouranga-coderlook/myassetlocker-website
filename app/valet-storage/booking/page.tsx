@@ -727,7 +727,7 @@ const ValetStorageBooking = () => {
               { step: 2, title: "Duration", icon: "📅" },
               { step: 3, title: "Add-ons", icon: "➕" },
               { step: 4, title: "Review", icon: "✅" },
-            ].map((item, index) => (
+            ].map((item) => (
               <div key={item.step} className="flex flex-col items-center relative z-20">
                 <div
                   className={`flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all cursor-pointer ${
