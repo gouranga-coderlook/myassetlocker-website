@@ -1,337 +1,85 @@
-'use client';
-
-import { useState } from 'react';
+import Hero from "@/components/Hero";
 
 export default function Pricing() {
-  const [selectedPlan, setSelectedPlan] = useState('digital-locker');
-  const [storageSize, setStorageSize] = useState('small');
-  const [addOns, setAddOns] = useState<string[]>([]);
-  const [serviceZone, setServiceZone] = useState('zone-1');
-
-  const plans = {
-    'digital-locker': {
-      name: 'Digital Locker',
-      price: 9.99,
-      description: 'Digital inventory management only',
-      features: [
-        'Unlimited photo storage',
-        'Receipt organization',
-        'Smart categorization',
-        'Insurance reports',
-        'Advanced search',
-        'Secure cloud storage'
-      ]
-    },
-    'valet-storage': {
-      name: 'Valet Storage',
-      price: 29.99,
-      description: 'Physical storage with pickup & delivery',
-      features: [
-        'Climate-controlled storage',
-        'Professional pickup & delivery',
-        'Comprehensive insurance',
-        '24/7 security monitoring',
-        'Inventory management',
-        'Condition reports'
-      ]
-    },
-    'unified': {
-      name: 'Unified Plan',
-      price: 34.99,
-      description: 'Both digital locker and valet storage',
-      features: [
-        'All Digital Locker features',
-        'All Valet Storage features',
-        'Unified dashboard',
-        'Priority support',
-        'Advanced analytics',
-        'Custom reporting'
-      ]
-    }
-  };
-
-  const storageSizes = {
-    'small': { name: 'Small Items', multiplier: 1.0 },
-    'medium': { name: 'Medium Items', multiplier: 1.5 },
-    'large': { name: 'Large Items', multiplier: 2.0 }
-  };
-
-  const serviceZones = {
-    'zone-1': { name: 'Zone 1 (Same Day)', multiplier: 1.0 },
-    'zone-2': { name: 'Zone 2 (Next Day)', multiplier: 0.8 },
-    'zone-3': { name: 'Zone 3 (Scheduled)', multiplier: 0.6 }
-  };
-
-  const addOnServices = {
-    'insurance': { name: 'Enhanced Insurance', price: 5.99 },
-    'climate': { name: 'Premium Climate Control', price: 7.99 },
-    'inventory': { name: 'Professional Inventory', price: 9.99 },
-    'rotation': { name: 'Item Rotation Service', price: 4.99 },
-    'reports': { name: 'Monthly Condition Reports', price: 3.99 },
-    'priority': { name: 'Priority Access', price: 12.99 }
-  };
-
-  const calculatePrice = () => {
-    let basePrice = plans[selectedPlan as keyof typeof plans].price;
-    
-    if (selectedPlan === 'valet-storage' || selectedPlan === 'unified') {
-      basePrice *= storageSizes[storageSize as keyof typeof storageSizes].multiplier;
-      basePrice *= serviceZones[serviceZone as keyof typeof serviceZones].multiplier;
-    }
-    
-    const addOnPrice = addOns.reduce((total, addOn) => {
-      return total + addOnServices[addOn as keyof typeof addOnServices].price;
-    }, 0);
-    
-    return basePrice + addOnPrice;
-  };
-
-  const toggleAddOn = (addOn: string) => {
-    setAddOns(prev => 
-      prev.includes(addOn) 
-        ? prev.filter(item => item !== addOn)
-        : [...prev, addOn]
-    );
-  };
 
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative gradient-hero py-20 lg:py-32 overflow-hidden">
-        {/* Background decorations */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200 rounded-full opacity-20 animate-float"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary-200 rounded-full opacity-20 animate-float" style={{animationDelay: '1s'}}></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary-100 rounded-full opacity-10 animate-pulse-slow"></div>
-        </div>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="w-20 h-20 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-glow animate-fade-in-up">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-6 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
-              <span className="text-gradient-primary">Pricing</span>
-            </h1>
-            <p className="text-base md:text-lg text-text-secondary mb-8 max-w-3xl mx-auto animate-fade-in-up" style={{animationDelay: '0.4s'}}>
-              Choose the perfect plan for your asset protection needs
-            </p>
-          </div>
-        </div>
-      </section>
+      <Hero
+        backgroundImage="/household-storage-service.webp"
+        headline="Valet Storage Pricing"
+        bodyText={`Professional pickup, secure storage, and delivery service for your valuable items. Transparent pricing with no hidden fees.`}
+        ctaButton={{
+          enabled: false,
+        }}
+        appStoreButtons={true}
+      />
 
-      {/* Interactive Pricing Configurator */}
-      <section className="py-20">
+      {/* Storage Pricing */}
+      <section className="py-16 sm:py-20 md:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16 animate-fade-in-up">
-              <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
-                Interactive <span className="text-gradient-primary">Pricing Configurator</span>
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
+                Storage Pricing
               </h2>
-              <p className="text-base text-text-secondary max-w-2xl mx-auto">
-                Customize your plan and see real-time pricing updates
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
+                Transparent monthly pricing with no hidden fees
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              {/* Configuration Panel */}
-              <div className="space-y-8">
-                {/* Plan Selection */}
-                <div className="card-modern p-6 hover-lift">
-                  <h3 className="text-lg font-semibold text-text-primary mb-4">Choose Your Plan</h3>
-                  <div className="space-y-3">
-                    {Object.entries(plans).map(([key, plan]) => (
-                      <label key={key} className="flex items-start space-x-3 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="plan"
-                          value={key}
-                          checked={selectedPlan === key}
-                          onChange={(e) => setSelectedPlan(e.target.value)}
-                          className="mt-1 w-4 h-4 text-primary-600"
-                        />
-                        <div className="flex-1">
-                          <div className="text-lg font-semibold text-text-primary">{plan.name}</div>
-                          <div className="text-sm text-text-secondary">{plan.description}</div>
-                          <div className="text-lg font-bold text-gradient-primary">${plan.price}/month</div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+            <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <h3 className="text-xl font-bold text-[#4c4946] mb-4">Standard Storage</h3>
+                  <ul className="space-y-3 text-[#8e9293]">
+                    <li className="flex justify-between items-center">
+                      <span>Per-bin (27–32 gal, ≤40 lb)</span>
+                      <span className="font-bold text-[#f8992f]">$7.50/mo</span>
+                    </li>
+                    <li className="flex justify-between items-center">
+                      <span>Climate-controlled add-on</span>
+                      <span className="font-bold text-[#f8992f]">+20%</span>
+                    </li>
+                  </ul>
                 </div>
-
-                {/* Storage Size (only for valet storage) */}
-                {(selectedPlan === 'valet-storage' || selectedPlan === 'unified') && (
-                  <div className="card-modern p-6 hover-lift">
-                    <h3 className="text-lg font-semibold text-text-primary mb-4">Storage Size</h3>
-                    <div className="space-y-3">
-                      {Object.entries(storageSizes).map(([key, size]) => (
-                        <label key={key} className="flex items-start space-x-3 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="storageSize"
-                            value={key}
-                            checked={storageSize === key}
-                            onChange={(e) => setStorageSize(e.target.value)}
-                            className="mt-1 w-4 h-4 text-primary-600"
-                          />
-                          <div className="flex-1">
-                            <div className="text-lg font-semibold text-text-primary">{size.name}</div>
-                            <div className="text-sm text-text-secondary">
-                              {size.multiplier === 1.0 ? 'Standard pricing' : 
-                               size.multiplier === 1.5 ? '1.5x pricing' : '2x pricing'}
-                            </div>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Service Zone (only for valet storage) */}
-                {(selectedPlan === 'valet-storage' || selectedPlan === 'unified') && (
-                  <div className="card-modern p-6 hover-lift">
-                    <h3 className="text-lg font-semibold text-text-primary mb-4">Service Zone</h3>
-                    <div className="space-y-3">
-                      {Object.entries(serviceZones).map(([key, zone]) => (
-                        <label key={key} className="flex items-start space-x-3 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="serviceZone"
-                            value={key}
-                            checked={serviceZone === key}
-                            onChange={(e) => setServiceZone(e.target.value)}
-                            className="mt-1 w-4 h-4 text-primary-600"
-                          />
-                          <div className="flex-1">
-                            <div className="text-lg font-semibold text-text-primary">{zone.name}</div>
-                            <div className="text-sm text-text-secondary">
-                              {zone.multiplier === 1.0 ? 'Standard pricing' : 
-                               zone.multiplier === 0.8 ? '20% discount' : '40% discount'}
-                            </div>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Add-on Services */}
-                <div className="card-modern p-6 hover-lift">
-                  <h3 className="text-lg font-semibold text-text-primary mb-4">Add-on Services</h3>
-                  <div className="space-y-3">
-                    {Object.entries(addOnServices).map(([key, service]) => (
-                      <label key={key} className="flex items-start space-x-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={addOns.includes(key)}
-                          onChange={() => toggleAddOn(key)}
-                          className="mt-1 w-4 h-4 text-primary-600"
-                        />
-                        <div className="flex-1">
-                          <div className="text-lg font-semibold text-text-primary">{service.name}</div>
-                          <div className="text-sm text-text-secondary">+${service.price}/month</div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+                <div>
+                  <h3 className="text-xl font-bold text-[#4c4946] mb-4">Bulky Items</h3>
+                  <ul className="space-y-3 text-[#8e9293]">
+                    <li className="flex justify-between items-center">
+                      <span>Skis/Board</span>
+                      <span className="font-bold text-[#f8992f]">$6/mo</span>
+                    </li>
+                    <li className="flex justify-between items-center">
+                      <span>Bicycle</span>
+                      <span className="font-bold text-[#f8992f]">$12/mo</span>
+                    </li>
+                    <li className="flex justify-between items-center">
+                      <span>E-bike</span>
+                      <span className="font-bold text-[#f8992f]">$15/mo</span>
+                    </li>
+                    <li className="flex justify-between items-center">
+                      <span>Luggage</span>
+                      <span className="font-bold text-[#f8992f]">$6–$8/mo</span>
+                    </li>
+                    <li className="flex justify-between items-center">
+                      <span>Seasonal tire set (4)</span>
+                      <span className="font-bold text-[#f8992f]">$18/mo</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
-
-              {/* Price Summary */}
-              <div className="card-modern p-8 hover-lift">
-                <h3 className="text-xl md:text-2xl font-semibold text-text-primary mb-6 text-center text-gradient-primary">
-                  Your Custom Plan
-                </h3>
-                
-                <div className="space-y-4 mb-6">
-                  <div className="flex justify-between items-center">
-                    <span className="text-base text-text-secondary">Base Plan:</span>
-                    <span className="text-lg font-semibold text-text-primary">
-                      {plans[selectedPlan as keyof typeof plans].name}
-                    </span>
+              
+              <div className="mt-8 pt-6 border-t border-[#e8e8e8]">
+                <h3 className="text-xl font-bold text-[#4c4946] mb-4">Commitment Discounts</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex justify-between items-center p-4 bg-[#fef7ed] rounded-xl">
+                    <span className="text-[#8e9293]">6-month commitment</span>
+                    <span className="font-bold text-[#f8992f]">–10%</span>
                   </div>
-                  
-                  {(selectedPlan === 'valet-storage' || selectedPlan === 'unified') && (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-base text-text-secondary">Storage Size:</span>
-                        <span className="text-lg font-semibold text-text-primary">
-                          {storageSizes[storageSize as keyof typeof storageSizes].name}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <span className="text-base text-text-secondary">Service Zone:</span>
-                        <span className="text-lg font-semibold text-text-primary">
-                          {serviceZones[serviceZone as keyof typeof serviceZones].name}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                  
-                  {addOns.length > 0 && (
-                    <div className="border-t border-border-primary pt-4">
-                      <div className="text-base text-text-secondary mb-2">Add-ons:</div>
-                      {addOns.map(addOn => (
-                        <div key={addOn} className="flex justify-between items-center text-sm">
-                          <span className="text-base text-text-secondary">
-                            {addOnServices[addOn as keyof typeof addOnServices].name}
-                          </span>
-                          <span className="text-lg font-semibold text-text-primary">
-                            +${addOnServices[addOn as keyof typeof addOnServices].price}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="border-t border-border-primary pt-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <span className="text-lg font-semibold text-text-primary">Monthly Total:</span>
-                    <span className="text-3xl font-bold text-gradient-primary">
-                      ${calculatePrice().toFixed(2)}
-                    </span>
-                  </div>
-                  
-                  <div className="text-center text-sm text-text-secondary mb-6">
-                    Billed monthly • Cancel anytime • No setup fees
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <a
-                      href="https://apps.apple.com/app/myassetlocker"
-                      className="btn-modern hover-lift hover-glow w-full inline-flex items-center justify-center px-6 py-3"
-                      data-track-cta="pricing-app-store"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                        </svg>
-                        <div className="text-left">
-                          <div className="text-xs">Download on the</div>
-                          <div className="text-sm font-semibold">App Store</div>
-                        </div>
-                      </div>
-                    </a>
-                    
-                    <a
-                      href="https://play.google.com/store/apps/details?id=com.myassetlocker.app"
-                      className="btn-secondary hover-lift hover-glow w-full inline-flex items-center justify-center px-6 py-3"
-                      data-track-cta="pricing-google-play"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M3.609 1.814L13.792 12 3.609 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L12.5 12l5.199-3.491zM5.864 2.658L16.802 8.99l-2.302 2.302-8.636-8.634z"/>
-                        </svg>
-                        <div className="text-left">
-                          <div className="text-xs">GET IT ON</div>
-                          <div className="text-sm font-semibold">Google Play</div>
-                        </div>
-                      </div>
-                    </a>
+                  <div className="flex justify-between items-center p-4 bg-[#fef7ed] rounded-xl">
+                    <span className="text-[#8e9293]">12-month prepaid</span>
+                    <span className="font-bold text-[#f8992f]">–15%</span>
                   </div>
                 </div>
               </div>
@@ -340,105 +88,390 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* Plan Comparison */}
-      <section className="py-20 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-primary-900">
+      {/* Bundles */}
+      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16 animate-fade-in-up">
-              <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
-                Plan <span className="text-gradient-primary">Comparison</span>
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
+                Student & Seasonal Bundles
               </h2>
-              <p className="text-base text-text-secondary max-w-2xl mx-auto">
-                Compare all our plans to find the perfect fit for your needs
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
+                Prepaid packages designed for students and seasonal storage needs
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-[#4c4946]">Summer Student</h3>
+                  <span className="text-2xl font-bold text-[#f8992f]">$229</span>
+                </div>
+                <p className="text-[#8e9293] mb-4">May–August prepaid package</p>
+                <ul className="space-y-3 text-[#8e9293]">
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Pickup + one return (group windows)
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    5 bins + 1 bulky (bike or skis)
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Extras: $25/bin, $49/bulky for term
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-[#4c4946]">Ski Season Stash</h3>
+                  <span className="text-2xl font-bold text-[#f8992f]">$149</span>
+                </div>
+                <p className="text-[#8e9293] mb-4">November–April prepaid package</p>
+                <ul className="space-y-3 text-[#8e9293]">
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Pickup + one spring return
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    2 bins + 1 bulky (skis/board)
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Add seasonal tire storage: +$99 for term
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Delivery Pricing */}
+      <section className="py-16 sm:py-20 md:py-24">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
+                Pickup & Delivery Pricing
+              </h2>
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
+                Flexible delivery options based on your location and timing needs
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+                <h3 className="text-xl font-bold text-[#4c4946] mb-6">Service Zones</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-4 bg-[#fef7ed] rounded-xl">
+                    <div>
+                      <div className="font-semibold text-[#4c4946]">Zone A</div>
+                      <div className="text-sm text-[#8e9293]">0–7 miles</div>
+                    </div>
+                    <span className="text-2xl font-bold text-[#f8992f]">$39</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-[#fef7ed] rounded-xl">
+                    <div>
+                      <div className="font-semibold text-[#4c4946]">Zone B</div>
+                      <div className="text-sm text-[#8e9293]">7.1–15 miles</div>
+                    </div>
+                    <span className="text-2xl font-bold text-[#f8992f]">$59</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-[#fef7ed] rounded-xl">
+                    <div>
+                      <div className="font-semibold text-[#4c4946]">Zone C</div>
+                      <div className="text-sm text-[#8e9293]">15.1–25 miles</div>
+                    </div>
+                    <span className="text-2xl font-bold text-[#f8992f]">$89</span>
+                  </div>
+                </div>
+                <p className="text-sm text-[#8e9293] mt-4">Beyond 25 miles: custom quote</p>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+                <h3 className="text-xl font-bold text-[#4c4946] mb-6">Timing Options</h3>
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold text-[#4c4946] mb-3">Delivery Windows</h4>
+                    <ul className="space-y-2 text-[#8e9293]">
+                      <li className="flex justify-between">
+                        <span>Exact 1-hour window</span>
+                        <span className="font-bold text-[#f8992f]">+$20</span>
+                      </li>
+                      <li className="flex justify-between">
+                        <span>Same-day delivery</span>
+                        <span className="font-bold text-[#f8992f]">+$35</span>
+                      </li>
+                      <li className="flex justify-between">
+                        <span>Flexible window discount</span>
+                        <span className="font-bold text-[#f8992f]">–$10</span>
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-[#4c4946] mb-3">Additional Services</h4>
+                    <ul className="space-y-2 text-[#8e9293]">
+                      <li className="flex justify-between">
+                        <span>On-site handling (20+ min)</span>
+                        <span className="font-bold text-[#f8992f]">$1/min</span>
+                      </li>
+                      <li className="flex justify-between">
+                        <span>Stairs 3+ floors</span>
+                        <span className="font-bold text-[#f8992f]">+$15</span>
+                      </li>
+                      <li className="flex justify-between">
+                        <span>Partial return pull</span>
+                        <span className="font-bold text-[#f8992f]">$5/item</span>
+                      </li>
+                      <li className="flex justify-between">
+                        <span>No-show/late cancel</span>
+                        <span className="font-bold text-[#f8992f]">$25</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Service Plans */}
+      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
+                Service Plans
+              </h2>
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
+                Choose the plan that best fits your storage needs
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {Object.entries(plans).map(([key, plan], index) => (
-                <div key={key} className={`card-modern p-6 hover-lift animate-fade-in-up ${index === 1 ? 'ring-2 ring-primary-500' : ''}`} style={{animationDelay: `${0.1 * index}s`}}>
-                  {index === 1 && (
-                    <div className="text-center mb-4">
-                      <span className="bg-gradient-primary text-white px-3 py-1 rounded-full text-sm font-semibold">
-                        Most Popular
-                      </span>
-                    </div>
-                  )}
-                  
-                  <div className="text-center mb-6">
-                    <h3 className="text-xl md:text-2xl font-semibold text-text-primary mb-2">{plan.name}</h3>
-                    <div className="text-4xl font-bold text-gradient-primary mb-2">${plan.price}</div>
-                    <div className="text-base text-text-secondary">per month</div>
-                    <p className="text-sm text-text-secondary mt-2">{plan.description}</p>
-                  </div>
-                  
-                  <ul className="space-y-3 mb-8">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start space-x-3">
-                        <div className="w-5 h-5 gradient-primary rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 shadow-glow">
-                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                        <span className="text-sm text-text-secondary">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  <a
-                    href="https://apps.apple.com/app/myassetlocker"
-                    className={`w-full inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold transition-all ${
-                      index === 1 
-                        ? 'btn-modern hover-lift hover-glow' 
-                        : 'btn-secondary hover-lift hover-glow'
-                    }`}
-                    data-track-cta={`plan-${key}-app-store`}
-                  >
-                    Get Started
-                  </a>
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-[#4c4946]">Starter</h3>
+                  <span className="text-2xl font-bold text-[#f8992f]">$24/mo</span>
                 </div>
-              ))}
+                <p className="text-[#8e9293] mb-4">Apartment Closet</p>
+                <ul className="space-y-3 text-[#8e9293]">
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Up to 4 bins (then $7.50/bin)
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Zone A pickup –$39 with 4+ bins
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    1 free partial pull/mo
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ring-2 ring-[#f8992f]">
+                <div className="text-center mb-4">
+                  <span className="bg-[#f8992f] text-white px-3 py-1 rounded-full text-sm font-semibold">
+                    Most Popular
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-[#4c4946]">Gear Plus</h3>
+                  <span className="text-2xl font-bold text-[#f8992f]">$39/mo</span>
+                </div>
+                <p className="text-[#8e9293] mb-4">Homeowner</p>
+                <ul className="space-y-3 text-[#8e9293]">
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    4 bins + 1 bulky included
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    –$10 on every delivery
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    +20% off tire storage
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-[#4c4946]">Student Summer</h3>
+                  <span className="text-2xl font-bold text-[#f8992f]">$229</span>
+                </div>
+                <p className="text-[#8e9293] mb-4">Prepaid</p>
+                <ul className="space-y-3 text-[#8e9293]">
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Pickup + one return
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    5 bins + 1 bulky included
+                  </li>
+                  <li className="flex items-center">
+                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Extras billed per term
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-20">
+      {/* Add-ons */}
+      <section className="py-16 sm:py-20 md:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-16 animate-fade-in-up">
-              <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
-                Pricing <span className="text-gradient-primary">FAQ</span>
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
+                Optional Add-ons
               </h2>
-              <p className="text-base text-text-secondary max-w-2xl mx-auto">
-                Common questions about our pricing and billing
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
+                Enhance your storage experience with these optional services
               </p>
             </div>
 
-            <div className="space-y-6">
-              <div className="card-modern p-6 hover-lift">
-                <h3 className="text-lg font-semibold text-text-primary mb-2">Can I change my plan anytime?</h3>
-                <p className="text-base text-text-secondary">Yes, you can upgrade or downgrade your plan at any time. Changes take effect on your next billing cycle.</p>
+            <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-[#f8992f] to-[#e8911f] rounded-2xl flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-[#4c4946] mb-4">Photo Inventory</h3>
+                  <p className="text-[#8e9293] mb-4">Professional photo documentation with barcodes</p>
+                  <div className="text-2xl font-bold text-[#f8992f]">$1/item</div>
+                  <p className="text-sm text-[#8e9293] mt-2">One-time fee</p>
+                </div>
+
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-[#f8992f] to-[#e8911f] rounded-2xl flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-[#4c4946] mb-4">Protection Plans</h3>
+                  <p className="text-[#8e9293] mb-4">Enhanced insurance coverage for your items</p>
+                  <div className="space-y-2">
+                    <div className="text-lg font-bold text-[#f8992f]">$3/mo</div>
+                    <p className="text-sm text-[#8e9293]">$500 limit</p>
+                    <div className="text-lg font-bold text-[#f8992f]">$6/mo</div>
+                    <p className="text-sm text-[#8e9293]">$1,500 limit</p>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-[#f8992f] to-[#e8911f] rounded-2xl flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-[#4c4946] mb-4">Packing Materials</h3>
+                  <p className="text-[#8e9293] mb-4">Professional packing supplies and containers</p>
+                  <div className="space-y-2 text-sm text-[#8e9293]">
+                    <div className="flex justify-between">
+                      <span>Tote rental</span>
+                      <span className="font-bold text-[#f8992f]">$2/mo</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tote purchase</span>
+                      <span className="font-bold text-[#f8992f]">$25</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Wardrobe box</span>
+                      <span className="font-bold text-[#f8992f]">$12 + $8/mo</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              
-              <div className="card-modern p-6 hover-lift">
-                <h3 className="text-lg font-semibold text-text-primary mb-2">Are there any setup fees?</h3>
-                <p className="text-base text-text-secondary">No setup fees! You only pay the monthly subscription fee for your chosen plan.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Service Areas */}
+      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
+                Service Area Zones
+              </h2>
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
+                We serve the greater Colorado Springs area with transparent zone-based pricing
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-[#4c4946]">Zone A</h3>
+                  <span className="text-sm text-[#8e9293]">0–7 miles</span>
+                </div>
+                <p className="text-[#8e9293] mb-4">Downtown/Colorado College, Old North End, UCCS, Old Colorado City, Ivywild, Broadmoor, central Powers corridor.</p>
+                <div className="text-2xl font-bold text-[#f8992f]">$39</div>
               </div>
-              
-              <div className="card-modern p-6 hover-lift">
-                <h3 className="text-lg font-semibold text-text-primary mb-2">What happens if I cancel?</h3>
-                <p className="text-base text-text-secondary">You can cancel anytime. Your service will continue until the end of your current billing period.</p>
+
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-[#4c4946]">Zone B</h3>
+                  <span className="text-sm text-[#8e9293]">7.1–15 miles</span>
+                </div>
+                <p className="text-[#8e9293] mb-4">Briargate, Rockrimmon, Cimarron Hills, Peterson area, Northgate.</p>
+                <div className="text-2xl font-bold text-[#f8992f]">$59</div>
               </div>
-              
-              <div className="card-modern p-6 hover-lift">
-                <h3 className="text-lg font-semibold text-text-primary mb-2">Do you offer annual discounts?</h3>
-                <p className="text-base text-text-secondary">Yes! Save 20% when you pay annually. Contact our support team for more information.</p>
-              </div>
-              
-              <div className="card-modern p-6 hover-lift">
-                <h3 className="text-lg font-semibold text-text-primary mb-2">Is there a free trial?</h3>
-                <p className="text-base text-text-secondary">We offer a 14-day free trial for all new users. No credit card required to start.</p>
+
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-[#4c4946]">Zone C</h3>
+                  <span className="text-sm text-[#8e9293]">15.1–25 miles</span>
+                </div>
+                <p className="text-[#8e9293] mb-4">Monument/Palmer Lake, Falcon/Peyton, Fountain/Security-Widefield, Manitou Springs, Woodland Park.</p>
+                <div className="text-2xl font-bold text-[#f8992f]">$89</div>
               </div>
             </div>
           </div>
@@ -446,49 +479,32 @@ export default function Pricing() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 gradient-primary">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 animate-fade-in-up">
-            Ready to Protect Your Assets?
-          </h2>
-          <p className="text-base text-white/90 mb-8 max-w-2xl mx-auto animate-fade-in-up" style={{animationDelay: '0.2s'}}>
-            Start your free trial today and experience the peace of mind that comes with comprehensive asset protection
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up" style={{animationDelay: '0.4s'}}>
-            <a
-              href="https://apps.apple.com/app/myassetlocker"
-              className="btn-modern hover-lift hover-glow inline-flex items-center justify-center px-6 py-3"
-              aria-label="Download on the App Store"
-              data-track-cta="pricing-final-app-store"
-            >
-              <div className="flex items-center space-x-3">
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-r from-[#f8992f] via-[#e8911f] to-[#c2751a] text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 sm:mb-8">
+              Ready to Get Started?
+            </h2>
+            <p className="text-lg sm:text-xl text-gray-300 mb-8 sm:mb-12 max-w-2xl mx-auto leading-relaxed">
+              Contact us today to schedule your pickup and experience the convenience of valet storage
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center">
+              <a
+                href="/contact"
+                className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-[#f8992f] to-[#e8911f] hover:from-[#e8911f] hover:to-[#c2751a] text-white font-bold text-lg uppercase tracking-wide rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 min-h-[56px]"
+              >
+                Get Started Today
+                <svg className="ml-3 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-                <div className="text-left">
-                  <div className="text-xs">Download on the</div>
-                  <div className="text-lg font-semibold">App Store</div>
-                </div>
-              </div>
-            </a>
-            
-            <a
-              href="https://play.google.com/store/apps/details?id=com.myassetlocker.app"
-              className="btn-secondary hover-lift hover-glow inline-flex items-center justify-center px-6 py-3"
-              aria-label="Get it on Google Play"
-              data-track-cta="pricing-final-google-play"
-            >
-              <div className="flex items-center space-x-3">
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3.609 1.814L13.792 12 3.609 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L12.5 12l5.199-3.491zM5.864 2.658L16.802 8.99l-2.302 2.302-8.636-8.634z"/>
-                </svg>
-                <div className="text-left">
-                  <div className="text-xs">GET IT ON</div>
-                  <div className="text-lg font-semibold">Google Play</div>
-                </div>
-              </div>
-            </a>
+              </a>
+              <a
+                href="/valet-storage"
+                className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white hover:bg-white hover:text-[#4c4946] font-bold text-lg uppercase tracking-wide rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 min-h-[56px]"
+              >
+                Learn More
+              </a>
+            </div>
           </div>
         </div>
       </section>

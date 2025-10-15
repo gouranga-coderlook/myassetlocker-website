@@ -8,12 +8,13 @@ export default function ValetStorage() {
       <Hero
         backgroundImage="/household-storage-service.webp"
         headline="Professional Valet Storage Service"
-        bodyText={`Convenient pickup, secure storage, and delivery service for your valuable items. Our climate-controlled facilities and professional handling ensure your belongings are safe and easily accessible whenever you need them.`}
+        // bodyText={`Convenient pickup, secure storage, and delivery service for your valuable items. Climate-controlled facilities ensure your belongings are safe and accessible.`}
         ctaButton={{
-          enabled: true,
+          enabled: false,
           text: "GET STARTED",
           href: "/valet-storage/booking",
         }}
+        appStoreButtons={true}
       />
 
       {/* Overview */}
@@ -90,7 +91,7 @@ export default function ValetStorage() {
             </div>
 
             {/* Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="text-center card-modern p-6 hover-lift animate-fade-in-up" style={{animationDelay: '0.3s'}}>
                 <div className="text-4xl font-bold text-gradient-secondary mb-2">99.9%</div>
                 <p className="text-base text-text-secondary">Item safety record with professional handling</p>

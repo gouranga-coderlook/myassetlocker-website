@@ -52,22 +52,33 @@ export default function ContactUs() {
       {/* Hero Section */}
       <Hero
         backgroundImage="/contact-page.png"
-        headline="we are here to help, contact us today!"
+        headline="Get in Touch"
+        bodyText="We're here to help you protect and manage your valuable assets. Contact our team for personalized assistance and support."
         ctaButton={{
           enabled: false,
         }}
+        isHomePage={false}
       />
 
-      <div className="px-4 lg:px-40">
-        {/* Contact Information */}
-        <section className="py-20 bg-background-secondary">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Contact Cards */}
-              <div className="bg-white dark:bg-secondary-800 rounded-2xl p-8 shadow-lg text-center">
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+      {/* Contact Information */}
+      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
+                Contact Information
+              </h2>
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
+                Get in touch with our team through any of these channels
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Email Card */}
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-[#f8992f] to-[#e8911f] rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <svg
-                    className="w-8 h-8 text-primary-600 dark:text-primary-400"
+                    className="w-8 h-8 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -80,24 +91,25 @@ export default function ContactUs() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
+                <h3 className="text-xl font-bold text-[#4c4946] mb-4">
                   Email Us
                 </h3>
-                <p className="text-base text-text-secondary mb-4">
-                  Send us an email anytime
+                <p className="text-[#8e9293] mb-6">
+                  Send us an email anytime and we'll respond within 24 hours
                 </p>
                 <a
                   href="mailto:support@myassetlocker.com"
-                  className="text-primary-600 dark:text-primary-400 hover:underline"
+                  className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#f8992f] to-[#e8911f] hover:from-[#e8911f] hover:to-[#c2751a] text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105"
                 >
                   support@myassetlocker.com
                 </a>
               </div>
 
-              <div className="bg-white dark:bg-secondary-800 rounded-2xl p-8 shadow-lg text-center">
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              {/* Phone Card */}
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-[#f8992f] to-[#e8911f] rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <svg
-                    className="w-8 h-8 text-primary-600 dark:text-primary-400"
+                    className="w-8 h-8 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -110,24 +122,25 @@ export default function ContactUs() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
+                <h3 className="text-xl font-bold text-[#4c4946] mb-4">
                   Call Us
                 </h3>
-                <p className="text-base text-text-secondary mb-4">
-                  Mon-Fri 9AM-6PM EST
+                <p className="text-[#8e9293] mb-6">
+                  Mon-Fri 9AM-6PM EST for immediate assistance
                 </p>
                 <a
                   href="tel:+1-800-555-0123"
-                  className="text-primary-600 dark:text-primary-400 hover:underline"
+                  className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#f8992f] to-[#e8911f] hover:from-[#e8911f] hover:to-[#c2751a] text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105"
                 >
                   (800) 555-0123
                 </a>
               </div>
 
-              <div className="bg-white dark:bg-secondary-800 rounded-2xl p-8 shadow-lg text-center">
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              {/* Location Card */}
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-[#f8992f] to-[#e8911f] rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <svg
-                    className="w-8 h-8 text-primary-600 dark:text-primary-400"
+                    className="w-8 h-8 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -146,378 +159,376 @@ export default function ContactUs() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
+                <h3 className="text-xl font-bold text-[#4c4946] mb-4">
                   Visit Us
                 </h3>
-                <p className="text-base text-text-secondary mb-4">
-                  Our headquarters
+                <p className="text-[#8e9293] mb-6">
+                  Our headquarters in Colorado Springs
                 </p>
-                <address className="text-primary-600 dark:text-primary-400 not-italic">
+                <address className="text-[#4c4946] not-italic font-medium">
                   123 Asset Protection Blvd
                   <br />
-                  San Francisco, CA 94105
+                  Colorado Springs, CO 80901
                 </address>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Contact Form */}
-        <section className="py-20">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center mb-16">
-                <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
-                  Send Us a Message
-                </h2>
-                <p className="text-base text-text-secondary max-w-2xl mx-auto">
-                  Have a question or need support? Fill out the form below and
-                  we&apos;ll get back to you within 24 hours.
-                </p>
-              </div>
+      {/* Contact Form */}
+      <section className="py-16 sm:py-20 md:py-24">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
+                Send Us a Message
+              </h2>
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
+                Have a question or need support? Fill out the form below and we'll get back to you within 24 hours.
+              </p>
+            </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                {/* Contact Form */}
-                <div className="bg-white dark:bg-secondary-800 rounded-2xl p-8 shadow-lg">
-                  {isSubmitted ? (
-                    <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-success-100 dark:bg-success-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg
-                          className="w-8 h-8 text-success-600 dark:text-success-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      </div>
-                      <h3 className="text-lg font-semibold text-text-primary mb-2">
-                        Message Sent!
-                      </h3>
-                      <p className="text-base text-text-secondary">
-                        Thank you for contacting us. We&apos;ll get back to you
-                        soon.
-                      </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              {/* Contact Form */}
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300">
+                {isSubmitted ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#f8992f] to-[#e8911f] rounded-full flex items-center justify-center mx-auto mb-6">
+                      <svg
+                        className="w-8 h-8 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
                     </div>
-                  ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label
-                            htmlFor="name"
-                            className="block text-sm font-medium text-text-primary mb-2"
-                          >
-                            Full Name *
-                          </label>
-                          <input
-                            type="text"
-                            id="name"
-                            name="name"
-                            required
-                            value={formData.name}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-3 border border-border-primary rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-background-primary text-text-primary"
-                            placeholder="Your full name"
-                          />
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor="email"
-                            className="block text-sm font-medium text-text-primary mb-2"
-                          >
-                            Email Address *
-                          </label>
-                          <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            required
-                            value={formData.email}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-3 border border-border-primary rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-background-primary text-text-primary"
-                            placeholder="your@email.com"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label
-                            htmlFor="phone"
-                            className="block text-sm font-medium text-text-primary mb-2"
-                          >
-                            Phone Number
-                          </label>
-                          <input
-                            type="tel"
-                            id="phone"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-3 border border-border-primary rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-background-primary text-text-primary"
-                            placeholder="(555) 123-4567"
-                          />
-                        </div>
-
-                        <div>
-                          <label
-                            htmlFor="inquiryType"
-                            className="block text-sm font-medium text-text-primary mb-2"
-                          >
-                            Inquiry Type
-                          </label>
-                          <select
-                            id="inquiryType"
-                            name="inquiryType"
-                            value={formData.inquiryType}
-                            onChange={handleInputChange}
-                            className="w-full px-4 py-3 border border-border-primary rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-background-primary text-text-primary"
-                          >
-                            <option value="general">General Inquiry</option>
-                            <option value="support">Technical Support</option>
-                            <option value="billing">Billing Question</option>
-                            <option value="partnership">Partnership</option>
-                            <option value="media">Media Inquiry</option>
-                          </select>
-                        </div>
-                      </div>
-
+                    <h3 className="text-xl font-bold text-[#4c4946] mb-4">
+                      Message Sent!
+                    </h3>
+                    <p className="text-[#8e9293]">
+                      Thank you for contacting us. We'll get back to you soon.
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label
-                          htmlFor="subject"
-                          className="block text-sm font-medium text-text-primary mb-2"
+                          htmlFor="name"
+                          className="block text-sm font-semibold text-[#4c4946] mb-3"
                         >
-                          Subject *
+                          Full Name *
                         </label>
                         <input
                           type="text"
-                          id="subject"
-                          name="subject"
+                          id="name"
+                          name="name"
                           required
-                          value={formData.subject}
+                          value={formData.name}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-border-primary rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-background-primary text-text-primary"
-                          placeholder="Brief description of your inquiry"
+                          className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300"
+                          placeholder="Your full name"
                         />
                       </div>
 
                       <div>
                         <label
-                          htmlFor="message"
-                          className="block text-sm font-medium text-text-primary mb-2"
+                          htmlFor="email"
+                          className="block text-sm font-semibold text-[#4c4946] mb-3"
                         >
-                          Message *
+                          Email Address *
                         </label>
-                        <textarea
-                          id="message"
-                          name="message"
+                        <input
+                          type="email"
+                          id="email"
+                          name="email"
                           required
-                          rows={6}
-                          value={formData.message}
+                          value={formData.email}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-border-primary rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-background-primary text-text-primary resize-none"
-                          placeholder="Please provide details about your inquiry..."
+                          className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300"
+                          placeholder="your@email.com"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label
+                          htmlFor="phone"
+                          className="block text-sm font-semibold text-[#4c4946] mb-3"
+                        >
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          id="phone"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300"
+                          placeholder="(555) 123-4567"
                         />
                       </div>
 
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                      <div>
+                        <label
+                          htmlFor="inquiryType"
+                          className="block text-sm font-semibold text-[#4c4946] mb-3"
+                        >
+                          Inquiry Type
+                        </label>
+                        <select
+                          id="inquiryType"
+                          name="inquiryType"
+                          value={formData.inquiryType}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300"
+                        >
+                          <option value="general">General Inquiry</option>
+                          <option value="support">Technical Support</option>
+                          <option value="billing">Billing Question</option>
+                          <option value="partnership">Partnership</option>
+                          <option value="media">Media Inquiry</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="subject"
+                        className="block text-sm font-semibold text-[#4c4946] mb-3"
                       >
-                        {isSubmitting ? (
-                          <>
-                            <svg
-                              className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                            Sending...
-                          </>
-                        ) : (
-                          "Send Message"
-                        )}
-                      </button>
-                    </form>
+                        Subject *
+                      </label>
+                      <input
+                        type="text"
+                        id="subject"
+                        name="subject"
+                        required
+                        value={formData.subject}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300"
+                        placeholder="Brief description of your inquiry"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="message"
+                        className="block text-sm font-semibold text-[#4c4946] mb-3"
+                      >
+                        Message *
+                      </label>
+                      <textarea
+                        id="message"
+                        name="message"
+                        required
+                        rows={6}
+                        value={formData.message}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300 resize-none"
+                        placeholder="Please provide details about your inquiry..."
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full bg-gradient-to-r from-[#f8992f] to-[#e8911f] hover:from-[#e8911f] hover:to-[#c2751a] disabled:from-[#8e9293] disabled:to-[#8e9293] text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-xl flex items-center justify-center"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <svg
+                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Sending...
+                        </>
+                      ) : (
+                        "Send Message"
+                      )}
+                    </button>
+                  </form>
                   )}
                 </div>
 
-                {/* Additional Information */}
-                <div className="space-y-8">
-                  <div className="bg-white dark:bg-secondary-800 rounded-2xl p-8 shadow-lg">
-                    <h3 className="text-lg font-semibold text-text-primary mb-4">
-                      Response Times
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">
-                          General Inquiries
-                        </span>
-                        <span className="text-text-primary font-medium">
-                          24 hours
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">
-                          Technical Support
-                        </span>
-                        <span className="text-text-primary font-medium">
-                          4 hours
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">
-                          Billing Questions
-                        </span>
-                        <span className="text-text-primary font-medium">
-                          12 hours
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">Partnership</span>
-                        <span className="text-text-primary font-medium">
-                          48 hours
-                        </span>
-                      </div>
+              {/* Additional Information */}
+              <div className="space-y-8">
+                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <h3 className="text-xl font-bold text-[#4c4946] mb-6">
+                    Response Times
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-[#fef7ed] rounded-xl">
+                      <span className="text-[#8e9293] font-medium">
+                        General Inquiries
+                      </span>
+                      <span className="text-[#f8992f] font-bold">
+                        24 hours
+                      </span>
                     </div>
-                  </div>
-
-                  <div className="bg-white dark:bg-secondary-800 rounded-2xl p-8 shadow-lg">
-                    <h3 className="text-lg font-semibold text-text-primary mb-4">
-                      Business Hours
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">
-                          Monday - Friday
-                        </span>
-                        <span className="text-text-primary font-medium">
-                          9:00 AM - 6:00 PM EST
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">Saturday</span>
-                        <span className="text-text-primary font-medium">
-                          10:00 AM - 4:00 PM EST
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-text-secondary">Sunday</span>
-                        <span className="text-text-primary font-medium">
-                          Closed
-                        </span>
-                      </div>
+                    <div className="flex justify-between items-center p-3 bg-[#fef7ed] rounded-xl">
+                      <span className="text-[#8e9293] font-medium">
+                        Technical Support
+                      </span>
+                      <span className="text-[#f8992f] font-bold">
+                        4 hours
+                      </span>
                     </div>
-                  </div>
-
-                  <div className="bg-white dark:bg-secondary-800 rounded-2xl p-8 shadow-lg">
-                    <h3 className="text-lg font-semibold text-text-primary mb-4">
-                      Emergency Support
-                    </h3>
-                    <p className="text-base text-text-secondary mb-4">
-                      For urgent matters outside business hours, please call our
-                      emergency line:
-                    </p>
-                    <a
-                      href="tel:+1-800-555-0124"
-                      className="text-primary-600 dark:text-primary-400 font-semibold hover:underline"
-                    >
-                      (800) 555-0124
-                    </a>
-                    <p className="text-sm text-text-tertiary mt-2">
-                      Available 24/7 for critical issues
-                    </p>
+                    <div className="flex justify-between items-center p-3 bg-[#fef7ed] rounded-xl">
+                      <span className="text-[#8e9293] font-medium">
+                        Billing Questions
+                      </span>
+                      <span className="text-[#f8992f] font-bold">
+                        12 hours
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-[#fef7ed] rounded-xl">
+                      <span className="text-[#8e9293] font-medium">Partnership</span>
+                      <span className="text-[#f8992f] font-bold">
+                        48 hours
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <h3 className="text-xl font-bold text-[#4c4946] mb-6">
+                    Business Hours
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#8e9293] font-medium">
+                        Monday - Friday
+                      </span>
+                      <span className="text-[#4c4946] font-bold">
+                        9:00 AM - 6:00 PM EST
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#8e9293] font-medium">Saturday</span>
+                      <span className="text-[#4c4946] font-bold">
+                        10:00 AM - 4:00 PM EST
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#8e9293] font-medium">Sunday</span>
+                      <span className="text-[#4c4946] font-bold">
+                        Closed
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-[#f8992f] to-[#e8911f] rounded-2xl p-6 sm:p-8 text-white">
+                  <h3 className="text-xl font-bold mb-4">
+                    Emergency Support
+                  </h3>
+                  <p className="text-white/90 mb-4">
+                    For urgent matters outside business hours, please call our
+                    emergency line:
+                  </p>
+                  <a
+                    href="tel:+1-800-555-0124"
+                    className="inline-flex items-center justify-center px-6 py-3 bg-white text-[#f8992f] font-bold rounded-xl hover:bg-gray-100 transition-all duration-300 transform hover:scale-105"
+                  >
+                    (800) 555-0124
+                  </a>
+                  <p className="text-white/80 text-sm mt-3">
+                    Available 24/7 for critical issues
+                  </p>
+                </div>
+              </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* FAQ Section */}
-        <section className="py-20 bg-background-secondary">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center mb-16">
-                <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
-                  Frequently Asked Questions
-                </h2>
-                <p className="text-base text-text-secondary">
-                  Quick answers to common questions
+      {/* FAQ Section */}
+      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
+                Frequently Asked Questions
+              </h2>
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
+                Quick answers to common questions about our services
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <h3 className="text-xl font-bold text-[#4c4946] mb-4">
+                  How quickly can I get started?
+                </h3>
+                <p className="text-[#8e9293] leading-relaxed">
+                  You can start using our digital locker immediately after
+                  downloading the app. For valet storage services, we
+                  typically schedule pickups within 24-48 hours of your
+                  request.
                 </p>
               </div>
 
-              <div className="space-y-6">
-                <div className="bg-white dark:bg-secondary-800 rounded-2xl p-6 shadow-lg">
-                  <h3 className="text-lg font-semibold text-text-primary mb-2">
-                    How quickly can I get started with MyAssetLocker?
-                  </h3>
-                  <p className="text-base text-text-secondary">
-                    You can start using our digital locker immediately after
-                    downloading the app. For valet storage services, we
-                    typically schedule pickups within 24-48 hours of your
-                    request.
-                  </p>
-                </div>
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <h3 className="text-xl font-bold text-[#4c4946] mb-4">
+                  Is my data secure?
+                </h3>
+                <p className="text-[#8e9293] leading-relaxed">
+                  Yes, we use bank-level 256-bit encryption and are SOC 2 Type
+                  II compliant. Your data is stored securely and never shared
+                  without your explicit consent.
+                </p>
+              </div>
 
-                <div className="bg-white dark:bg-secondary-800 rounded-2xl p-6 shadow-lg">
-                  <h3 className="text-lg font-semibold text-text-primary mb-2">
-                    Is my data secure with MyAssetLocker?
-                  </h3>
-                  <p className="text-base text-text-secondary">
-                    Yes, we use bank-level 256-bit encryption and are SOC 2 Type
-                    II compliant. Your data is stored securely and never shared
-                    without your explicit consent.
-                  </p>
-                </div>
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <h3 className="text-xl font-bold text-[#4c4946] mb-4">
+                  What areas do you serve?
+                </h3>
+                <p className="text-[#8e9293] leading-relaxed">
+                  We currently serve the greater Colorado Springs area with
+                  zone-based pricing. Check our pricing page or contact us to
+                  see if we serve your specific location.
+                </p>
+              </div>
 
-                <div className="bg-white dark:bg-secondary-800 rounded-2xl p-6 shadow-lg">
-                  <h3 className="text-lg font-semibold text-text-primary mb-2">
-                    What areas do you serve for valet storage?
-                  </h3>
-                  <p className="text-base text-text-secondary">
-                    We currently serve 25 major metropolitan areas across the
-                    United States. Check our app or contact us to see if we
-                    serve your area.
-                  </p>
-                </div>
-
-                <div className="bg-white dark:bg-secondary-800 rounded-2xl p-6 shadow-lg">
-                  <h3 className="text-lg font-semibold text-text-primary mb-2">
-                    How does insurance claim processing work?
-                  </h3>
-                  <p className="text-base text-text-secondary">
-                    We provide detailed reports and documentation that insurance
-                    companies can use to process claims faster. Many of our
-                    customers see 70% faster claim processing times.
-                  </p>
-                </div>
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <h3 className="text-xl font-bold text-[#4c4946] mb-4">
+                  How does insurance processing work?
+                </h3>
+                <p className="text-[#8e9293] leading-relaxed">
+                  We provide detailed reports and documentation that insurance
+                  companies can use to process claims faster. Many of our
+                  customers see 70% faster claim processing times.
+                </p>
               </div>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }

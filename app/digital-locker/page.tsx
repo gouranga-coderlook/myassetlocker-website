@@ -7,10 +7,11 @@ export default function DigitalLocker() {
       {/* Hero Section */}
       <Hero
         backgroundImage="/products-1.png"
-        headline="MyAsset Locker is there when you need it  most."
+        headline="MyAsset Locker is there when you need it most."
         ctaButton={{
           enabled: false,
         }}
+        appStoreButtons={true}
       />
 
       {/* How MyAsset Locker Works */}

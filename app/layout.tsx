@@ -1,10 +1,11 @@
 import { Analytics } from "@/components/Analytics";
+import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import ScrollToTop from "@/components/ScrollToTop";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import AppStoreButtons from "@/components/AppStoreButtons";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,22 +36,22 @@ export default function RootLayout({
       >
         <ThemeProvider defaultTheme="light" storageKey="myassetlocker-theme">
           <Analytics />
-          <div className="min-h-screen flex flex-col bg-background-primary text-text-primary">
+          <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#f7f7f7] via-white to-[#fef7ed] text-[#4c4946]">
             {/* Header */}
             <Header />
 
             {/* Main Content */}
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 relative">{children}</main>
 
             {/* Sticky Mobile Footer */}
-            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-neutral-800 border-t border-border-primary md:hidden">
-              <div className="flex items-center justify-center space-x-4 p-4">
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e8e8e8] md:hidden shadow-lg">
+              <div className="flex items-center justify-center space-x-3 sm:space-x-4 p-3 sm:p-4">
                 <a
                   href="https://apps.apple.com/app/myassetlocker"
-                  className="flex items-center space-x-2 px-3 py-2 bg-black text-white rounded-lg text-xs"
+                  className="flex items-center space-x-2 px-3 sm:px-4 py-2 sm:py-3 bg-black text-white rounded-lg text-xs sm:text-sm font-semibold min-h-[44px] transition-all duration-300 hover:scale-105"
                 >
                   <svg
-                    className="w-4 h-4"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
@@ -60,10 +61,10 @@ export default function RootLayout({
                 </a>
                 <a
                   href="https://play.google.com/store/apps/details?id=com.myassetlocker.app"
-                  className="flex items-center space-x-2 px-3 py-2 bg-black text-white rounded-lg text-xs"
+                  className="flex items-center space-x-2 px-3 sm:px-4 py-2 sm:py-3 bg-black text-white rounded-lg text-xs sm:text-sm font-semibold min-h-[44px] transition-all duration-300 hover:scale-105"
                 >
                   <svg
-                    className="w-4 h-4"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
@@ -73,131 +74,8 @@ export default function RootLayout({
                 </a>
               </div>
             </div>
-
-            {/* Footer */}
-            <footer className="bg-background-secondary border-t border-border-primary pb-20 md:pb-0">
-              <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                  {/* Brand */}
-                  <div className="col-span-1 md:col-span-2">
-                    <h3 className="text-lg font-semibold text-text-primary mb-4">
-                      MyAssetLocker
-                    </h3>
-                    <p className="text-text-secondary mb-6 max-w-md">
-                      Secure, manage, and organize your digital assets with
-                      enterprise-grade security and intuitive design.
-                    </p>
-                    {/* App Store Badges */}
-                    <AppStoreButtons />
-                  </div>
-
-                  {/* Quick Links */}
-                  <div>
-                    <h4 className="text-sm font-semibold text-text-primary mb-4">
-                      Product
-                    </h4>
-                    <ul className="space-y-2">
-                      <li>
-                        <a
-                          href="/how-it-works"
-                          className="text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          How It Works
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href="/digital-locker"
-                          className="text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          Digital Locker
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href="/valet-storage"
-                          className="text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          Valet Storage
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href="/pricing"
-                          className="text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          Pricing
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* Support */}
-                  <div>
-                    <h4 className="text-sm font-semibold text-text-primary mb-4">
-                      Support
-                    </h4>
-                    <ul className="space-y-2">
-                      <li>
-                        <a
-                          href="#help"
-                          className="text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          Help Center
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href="#docs"
-                          className="text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          Documentation
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href="#contact"
-                          className="text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          Contact Us
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href="#status"
-                          className="text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          Status
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Bottom Bar */}
-                <div className="mt-8 pt-8 border-t border-border-primary">
-                  <div className="flex flex-col md:flex-row justify-between items-center">
-                    <p className="text-text-tertiary text-sm">
-                      © 2024 MyAssetLocker, LLC. All rights reserved.
-                    </p>
-                    <div className="flex space-x-6 mt-4 md:mt-0">
-                      <a
-                        href="#privacy"
-                        className="text-text-tertiary hover:text-text-primary transition-colors text-sm"
-                      >
-                        Privacy Policy
-                      </a>
-                      <a
-                        href="#terms"
-                        className="text-text-tertiary hover:text-text-primary transition-colors text-sm"
-                      >
-                        Terms of Service
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </footer>
+            <Footer />
+            <ScrollToTop />
           </div>
         </ThemeProvider>
       </body>

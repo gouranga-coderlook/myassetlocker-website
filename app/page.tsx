@@ -6,33 +6,44 @@ export default function Home() {
     <div className="min-h-screen">
       <Hero
         backgroundImage="/Devistated-home-fire.jpg"
-        headline="Protect What You Own — Digitally & Physically"
-        bodyText={`Transform how you protect your valuable assets with our comprehensive digital and physical storage solution. From jewelry and electronics to seasonal items and important documents, MyAssetLocker provides security, detailed documentation, and professional valet storage services — all managed through one powerful app. Never lose track of what you own again, and ensure faster insurance claims with complete asset documentation.`}
+        headline="Protect What You Own Digitally & Physically"
+        bodyText="Your assets, insured and secured — all managed in our app."
         ctaButton={{
           enabled: true,
           text: "GET STARTED",
           href: "https://apps.apple.com/app/myassetlocker",
         }}
+        isHomePage={true}
       />
-      <div className="px-4 lg:px-40">
+      <div className="relative">
         {/* Value Pillars */}
-        <section className="py-20 bg-background-secondary">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
+        <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed] relative overflow-hidden group">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div
+              className="absolute top-0 left-0 w-full h-full"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234c4946' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+              }}
+            ></div>
+          </div>
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center mb-12 sm:mb-16 md:mb-20">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
                 Complete Asset Protection
               </h2>
-              <p className="text-base text-text-secondary max-w-2xl mx-auto">
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
                 Everything you need to secure, organize, and protect your
                 valuable assets
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+              <div className="text-center group p-4 sm:p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#fef7ed] to-[#fbd7a5] rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <svg
-                    className="w-8 h-8 text-primary-600 dark:text-primary-400"
+                    className="w-8 h-8 sm:w-10 sm:h-10 text-[#f8992f]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -45,18 +56,18 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
+                <h3 className="text-lg sm:text-xl font-bold text-[#4c4946] mb-2 sm:mb-3">
                   Digital Locker
                 </h3>
-                <p className="text-base text-text-secondary">
+                <p className="text-base sm:text-lg text-[#8e9293] leading-relaxed">
                   Secure digital inventory with photos, receipts, and reports
                 </p>
               </div>
 
-              <div className="text-center">
-                <div className="w-16 h-16 bg-secondary-100 dark:bg-secondary-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="text-center group p-4 sm:p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#f7f7f7] to-[#e8e8e8] rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <svg
-                    className="w-8 h-8 text-secondary-600 dark:text-secondary-400"
+                    className="w-8 h-8 sm:w-10 sm:h-10 text-[#8e9293]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -69,18 +80,18 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
+                <h3 className="text-lg sm:text-xl font-bold text-[#4c4946] mb-2 sm:mb-3">
                   Valet Storage
                 </h3>
-                <p className="text-base text-text-secondary">
+                <p className="text-base sm:text-lg text-[#8e9293] leading-relaxed">
                   Professional pickup, storage, and redelivery service
                 </p>
               </div>
 
-              <div className="text-center">
-                <div className="w-16 h-16 bg-success-100 dark:bg-success-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="text-center group p-4 sm:p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#f0fdf4] to-[#dcfce7] rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <svg
-                    className="w-8 h-8 text-success-600 dark:text-success-400"
+                    className="w-8 h-8 sm:w-10 sm:h-10 text-[#22c55e]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -93,18 +104,18 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
+                <h3 className="text-lg sm:text-xl font-bold text-[#4c4946] mb-2 sm:mb-3">
                   Insurance-Ready
                 </h3>
-                <p className="text-base text-text-secondary">
+                <p className="text-base sm:text-lg text-[#8e9293] leading-relaxed">
                   Comprehensive documentation for faster claims processing
                 </p>
               </div>
 
-              <div className="text-center">
-                <div className="w-16 h-16 bg-warning-100 dark:bg-warning-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="text-center group p-4 sm:p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#f3e8ff] to-[#e9d5ff] rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <svg
-                    className="w-8 h-8 text-warning-600 dark:text-warning-400"
+                    className="w-8 h-8 sm:w-10 sm:h-10 text-[#a855f7]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -117,10 +128,10 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
+                <h3 className="text-lg sm:text-xl font-bold text-[#4c4946] mb-2 sm:mb-3">
                   Secure
                 </h3>
-                <p className="text-base text-text-secondary">
+                <p className="text-base sm:text-lg text-[#8e9293] leading-relaxed">
                   Bank-level encryption and secure cloud storage
                 </p>
               </div>
@@ -129,78 +140,113 @@ export default function Home() {
         </section>
 
         {/* How It Works */}
-        <section className="py-20">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
+        <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-white via-[#fef7ed]/30 to-[#f7f7f7]/50 relative overflow-hidden">
+          {/* Background Elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-gradient-to-br from-[#f8992f]/10 to-transparent rounded-full -translate-y-32 sm:-translate-y-40 md:-translate-y-48 translate-x-32 sm:translate-x-40 md:translate-x-48"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 bg-gradient-to-tr from-[#8e9293]/10 to-transparent rounded-full translate-y-32 sm:translate-y-40 md:translate-y-48 -translate-x-32 sm:-translate-x-40 md:-translate-x-48"></div>
+          
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div
+              className="absolute top-0 left-0 w-full h-full"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234c4946' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+              }}
+            ></div>
+          </div>
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center mb-12 sm:mb-16 md:mb-20">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
                 How It Works
               </h2>
-              <p className="text-base text-text-secondary max-w-2xl mx-auto">
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
                 Three simple steps to complete asset protection
               </p>
             </div>
 
-            <div className="max-w-4xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-                    1
+            <div className="max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
+                {/* Step 1 */}
+                <div className="text-center group">
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-[#e8e8e8]/50">
+                    <h3 className="text-xl sm:text-2xl font-bold text-[#4c4946] mb-3 sm:mb-4">
+                      Create Your Inventory
+                    </h3>
+                    <p className="text-base sm:text-lg text-[#8e9293] leading-relaxed">
+                      Take photos, upload receipts, and organize your digital assets
+                    </p>
                   </div>
-                  <h3 className="text-lg font-semibold text-text-primary mb-2">
-                    Create Your Inventory
-                  </h3>
-                  <p className="text-base text-text-secondary">
-                    Take photos, upload receipts, and organize your digital
-                    assets
-                  </p>
                 </div>
 
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-                    2
-                  </div>
-                  <h3 className="text-lg font-semibold text-text-primary mb-2">
+                {/* Step 2 */}
+                <div className="text-center group">
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-[#e8e8e8]/50">
+                    <h3 className="text-xl sm:text-2xl font-bold text-[#4c4946] mb-3 sm:mb-4">
                     Schedule Storage
                   </h3>
-                  <p className="text-base text-text-secondary">
+                    <p className="text-base sm:text-lg text-[#8e9293] leading-relaxed">
                     Book pickup for physical items and choose storage options
                   </p>
+                  </div>
                 </div>
 
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-primary-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-                    3
+                {/* Step 3 */}
+                <div className="text-center group">
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-[#e8e8e8]/50">
+                    <h3 className="text-xl sm:text-2xl font-bold text-[#4c4946] mb-3 sm:mb-4">
+                      Manage Everything
+                    </h3>
+                    <p className="text-base sm:text-lg text-[#8e9293] leading-relaxed">
+                      Access your unified dashboard and manage everything in our app
+                    </p>
                   </div>
-                  <h3 className="text-lg font-semibold text-text-primary mb-2">
-                    Manage Everything
-                  </h3>
-                  <p className="text-base text-text-secondary">
-                    Access your unified dashboard and manage everything in our
-                    app
-                  </p>
                 </div>
+              </div>
+              
+              {/* Bottom CTA */}
+              <div className="text-center mt-12 sm:mt-16">
+                <a
+                  href="https://apps.apple.com/app/myassetlocker"
+                  className="inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-[#f8992f] to-[#e8911f] hover:from-[#e8911f] hover:to-[#c2751a] text-white font-bold text-lg rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                >
+                  <span>Start Protecting Your Assets</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
               </div>
             </div>
           </div>
         </section>
 
         {/* Who We Serve */}
-        <section className="py-20 bg-background-secondary">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
+        <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed] relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div
+              className="absolute top-0 left-0 w-full h-full"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234c4946' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+              }}
+            ></div>
+          </div>
+          
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center mb-12 sm:mb-16 md:mb-20">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
                 Who We Serve
               </h2>
-              <p className="text-base text-text-secondary max-w-2xl mx-auto">
+              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
                 Tailored solutions for different needs
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-white dark:bg-neutral-800 rounded-2xl p-8 shadow-lg">
-                <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900 rounded-lg flex items-center justify-center mb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-[#e8e8e8]">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#fef7ed] to-[#fbd7a5] rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6">
                   <svg
-                    className="w-6 h-6 text-primary-600 dark:text-primary-400"
+                    className="w-7 h-7 sm:w-8 sm:h-8 text-[#f8992f]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -213,30 +259,69 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
+                <h3 className="text-xl sm:text-2xl font-bold text-[#4c4946] mb-3 sm:mb-4">
                   Home Owners
                 </h3>
-                <p className="text-base text-text-secondary mb-4">
+                <p className="text-base sm:text-lg text-[#8e9293] mb-4 sm:mb-6 leading-relaxed">
                   Complete household inventory management for faster insurance
                   claims
                 </p>
-                <ul className="text-sm text-text-secondary space-y-1 mb-6">
-                  <li>• Digital asset cataloging</li>
-                  <li>• Receipt and document storage</li>
-                  <li>• Seasonal item storage</li>
+                <ul className="text-sm sm:text-base text-[#8e9293] space-y-2 mb-6 sm:mb-8">
+                  <li className="flex items-center">
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#f8992f] mr-2 sm:mr-3 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Digital asset cataloging
+                  </li>
+                  <li className="flex items-center">
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#f8992f] mr-2 sm:mr-3 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Receipt and document storage
+                  </li>
+                  <li className="flex items-center">
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#f8992f] mr-2 sm:mr-3 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Seasonal item storage
+                  </li>
                 </ul>
                 <a
                   href="https://apps.apple.com/app/myassetlocker"
-                  className="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+                  className="w-full inline-flex items-center justify-center px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#f8992f] to-[#e8911f] hover:from-[#e8911f] hover:to-[#c2751a] text-white rounded-lg sm:rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 min-h-[48px]"
                 >
                   Start Your Home Inventory
                 </a>
               </div>
 
-              <div className="bg-white dark:bg-neutral-800 rounded-2xl p-8 shadow-lg">
-                <div className="w-12 h-12 bg-secondary-100 dark:bg-secondary-900 rounded-lg flex items-center justify-center mb-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-[#e8e8e8]">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#f7f7f7] to-[#e8e8e8] rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6">
                   <svg
-                    className="w-6 h-6 text-secondary-600 dark:text-secondary-400"
+                    className="w-7 h-7 sm:w-8 sm:h-8 text-[#8e9293]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -249,29 +334,68 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
+                <h3 className="text-xl sm:text-2xl font-bold text-[#4c4946] mb-3 sm:mb-4">
                   Businesses
                 </h3>
-                <p className="text-base text-text-secondary mb-4">
+                <p className="text-base sm:text-lg text-[#8e9293] mb-4 sm:mb-6 leading-relaxed">
                   Equipment ledger and overflow storage solutions
                 </p>
-                <ul className="text-sm text-text-secondary space-y-1 mb-6">
-                  <li>• Multi-user access</li>
-                  <li>• Compliance reporting</li>
-                  <li>• Equipment tracking</li>
+                <ul className="text-sm sm:text-base text-[#8e9293] space-y-2 mb-6 sm:mb-8">
+                  <li className="flex items-center">
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#8e9293] mr-2 sm:mr-3 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Multi-user access
+                  </li>
+                  <li className="flex items-center">
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#8e9293] mr-2 sm:mr-3 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Compliance reporting
+                  </li>
+                  <li className="flex items-center">
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#8e9293] mr-2 sm:mr-3 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Equipment tracking
+                  </li>
                 </ul>
                 <a
                   href="https://apps.apple.com/app/myassetlocker"
-                  className="w-full inline-flex items-center justify-center px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors text-sm font-medium"
+                  className="w-full inline-flex items-center justify-center px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#8e9293] to-[#6b6b6b] hover:from-[#6b6b6b] hover:to-[#5a5a5a] text-white rounded-lg sm:rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 min-h-[48px]"
                 >
                   Get Business Solution
                 </a>
               </div>
 
-              <div className="bg-white dark:bg-neutral-800 rounded-2xl p-8 shadow-lg">
-                <div className="w-12 h-12 bg-success-100 dark:bg-success-900 rounded-lg flex items-center justify-center mb-4">
+              <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-[#e8e8e8]">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-[#f0fdf4] to-[#dcfce7] rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6">
                   <svg
-                    className="w-6 h-6 text-success-600 dark:text-success-400"
+                    className="w-7 h-7 sm:w-8 sm:h-8 text-[#22c55e]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -284,20 +408,59 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-2">
+                <h3 className="text-xl sm:text-2xl font-bold text-[#4c4946] mb-3 sm:mb-4">
                   Insurance Companies
                 </h3>
-                <p className="text-base text-text-secondary mb-4">
+                <p className="text-base sm:text-lg text-[#8e9293] mb-4 sm:mb-6 leading-relaxed">
                   Streamlined claims processing and partnership opportunities
                 </p>
-                <ul className="text-sm text-text-secondary space-y-1 mb-6">
-                  <li>• Faster claim verification</li>
-                  <li>• Detailed asset reports</li>
-                  <li>• Partnership programs</li>
+                <ul className="text-sm sm:text-base text-[#8e9293] space-y-2 mb-6 sm:mb-8">
+                  <li className="flex items-center">
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#22c55e] mr-2 sm:mr-3 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Faster claim verification
+                  </li>
+                  <li className="flex items-center">
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#22c55e] mr-2 sm:mr-3 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Detailed asset reports
+                  </li>
+                  <li className="flex items-center">
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#22c55e] mr-2 sm:mr-3 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Partnership programs
+                  </li>
                 </ul>
                 <a
                   href="https://apps.apple.com/app/myassetlocker"
-                  className="w-full inline-flex items-center justify-center px-4 py-2 bg-success-600 text-white rounded-lg hover:bg-success-700 transition-colors text-sm font-medium"
+                  className="w-full inline-flex items-center justify-center px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#22c55e] to-[#16a34a] hover:from-[#16a34a] hover:to-[#15803d] text-white rounded-lg sm:rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 min-h-[48px]"
                 >
                   Partner With Us
                 </a>
@@ -398,7 +561,7 @@ export default function Home() {
                 <div className="bg-white dark:bg-neutral-800 rounded-2xl p-6 shadow-lg">
                   <div className="flex items-center mb-4">
                     <div className="flex text-yellow-400">
-                      {[...Array(5)].map((_, i) => (
+                      {Array.from({ length: 5 }, (_, i) => (
                         <svg
                           key={`star-${i}`}
                           className="w-4 h-4 fill-current"
@@ -432,7 +595,7 @@ export default function Home() {
                 <div className="bg-white dark:bg-neutral-800 rounded-2xl p-6 shadow-lg">
                   <div className="flex items-center mb-4">
                     <div className="flex text-yellow-400">
-                      {[...Array(5)].map((_, i) => (
+                      {Array.from({ length: 5 }, (_, i) => (
                         <svg
                           key={`star-${i}`}
                           className="w-4 h-4 fill-current"
@@ -444,8 +607,9 @@ export default function Home() {
                     </div>
                   </div>
                   <p className="text-base text-text-secondary mb-4">
-                    &ldquo;The valet storage service is incredible. They picked up my
-                    seasonal items and delivered them right when I needed them.&rdquo;
+                    &ldquo;The valet storage service is incredible. They picked
+                    up my seasonal items and delivered them right when I needed
+                    them.&rdquo;
                   </p>
                   <div className="flex items-center">
                     <div className="w-10 h-10 bg-secondary-500 rounded-full flex items-center justify-center text-white font-semibold mr-3">
@@ -465,7 +629,7 @@ export default function Home() {
                 <div className="bg-white dark:bg-neutral-800 rounded-2xl p-6 shadow-lg">
                   <div className="flex items-center mb-4">
                     <div className="flex text-yellow-400">
-                      {[...Array(5)].map((_, i) => (
+                      {Array.from({ length: 5 }, (_, i) => (
                         <svg
                           key={`star-${i}`}
                           className="w-4 h-4 fill-current"
@@ -477,9 +641,9 @@ export default function Home() {
                     </div>
                   </div>
                   <p className="text-base text-text-secondary mb-4">
-                    &ldquo;As an insurance agent, MyAssetLocker makes my job so much
-                    easier. Claims are processed 3x faster with their detailed
-                    reports.&rdquo;
+                    &ldquo;As an insurance agent, MyAssetLocker makes my job so
+                    much easier. Claims are processed 3x faster with their
+                    detailed reports.&rdquo;
                   </p>
                   <div className="flex items-center">
                     <div className="w-10 h-10 bg-success-500 rounded-full flex items-center justify-center text-white font-semibold mr-3">
