@@ -9,7 +9,6 @@ export default function Header() {
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [showScrollTop, setShowScrollTop] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDigitalLockerOpen, setIsDigitalLockerOpen] = useState(false);
 
@@ -31,7 +30,6 @@ export default function Header() {
         
         setIsScrolled(scrollTop > 100);
         setScrollProgress(progress);
-        setShowScrollTop(scrollTop > 300);
       }, 10); // Small delay to debounce
     };
 
@@ -42,13 +40,6 @@ export default function Header() {
     };
   }, []);
 
-  // Scroll to top function
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
 
   // Mobile menu toggle
   const toggleMobileMenu = () => {

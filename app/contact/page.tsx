@@ -95,7 +95,7 @@ export default function ContactUs() {
                   Email Us
                 </h3>
                 <p className="text-[#8e9293] mb-6">
-                  Send us an email anytime and we'll respond within 24 hours
+                  Send us an email anytime and we&apos;ll respond within 24 hours
                 </p>
                 <a
                   href="mailto:support@myassetlocker.com"
@@ -185,7 +185,7 @@ export default function ContactUs() {
                 Send Us a Message
               </h2>
               <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
-                Have a question or need support? Fill out the form below and we'll get back to you within 24 hours.
+                Have a question or need support? Fill out the form below and we&apos;ll get back to you within 24 hours.
               </p>
             </div>
 
@@ -213,7 +213,7 @@ export default function ContactUs() {
                       Message Sent!
                     </h3>
                     <p className="text-[#8e9293]">
-                      Thank you for contacting us. We'll get back to you soon.
+                      Thank you for contacting us. We&apos;ll get back to you soon.
                     </p>
                   </div>
                 ) : (

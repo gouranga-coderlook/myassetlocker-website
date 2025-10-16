@@ -1,5 +1,6 @@
 import AppShowcase from "@/components/AppShowcase";
 import Hero from "@/components/Hero";
+import Image from "next/image";
 
 export default function AboutUs() {
   return (
@@ -156,9 +157,11 @@ export default function AboutUs() {
                 {/* Colorado Welcome Sign Image */}
                 <div className="order-2 lg:order-1">
                   <div className="rounded-2xl overflow-hidden shadow-lg">
-                    <img 
+                    <Image 
                       src="/about-us-us.jpg" 
                       alt="Welcome to Colorful Colorado" 
+                      width={600}
+                      height={400}
                       className="w-full h-auto rounded-2xl"
                     />
                   </div>
