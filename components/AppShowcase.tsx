@@ -85,7 +85,7 @@ const AppShowcase = memo(function AppShowcase() {
               {/* Carousel Container */}
               <div className="overflow-hidden rounded-2xl bg-white">
                 <div
-                  className="flex transition-transform duration-500 ease-in-out bg-transparent"
+                  className="flex transition-transform duration-500 ease-in-out bg-transparent my-8"
                   style={{
                     transform: `translateX(-${currentSlide * (100 / 3)}%)`,
                   }}
@@ -98,7 +98,7 @@ const AppShowcase = memo(function AppShowcase() {
                           alt={`App screenshot ${index + 1}`}
                           width={200}
                           height={400}
-                          className="w-full h-auto rounded-xl shadow-lg mx-auto"
+                          className="w-full h-auto mx-auto"
                         />
                         {/* Phone frame effect */}
                         <div className="absolute inset-0 pointer-events-none"></div>

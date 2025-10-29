@@ -1,0 +1,356 @@
+{
+  "model": {
+    "description": "Valet Storage Pricing Model - Advance Payment vs Month-to-Month",
+    "monthlyRatePerBin": 7.5,
+    "baseRedeliveryFee": 39,
+    "baseRedeliveryFeeDescription": "Standard re-delivery fee for 0-7 mile radius"
+  },
+  "prepaid": {
+    "description": "ADVANCE PAYMENT MODEL - Storage fee is FIXED at $7.50/month per bin. Re-delivery fee is discounted based on number of bins and term length.",
+    "grid": {
+      "bins": [1, 4, 10, 15, 20],
+      "months": [1, 3, 6, 9, 12],
+      "totals": {
+        "1": {
+          "1": 46.5,
+          "3": 52.5,
+          "6": 65,
+          "9": 77.5,
+          "12": 90,
+          "description": "1 bin - $7.50/month + varying re-delivery fee"
+        },
+        "4": {
+          "1": 60,
+          "3": 110,
+          "6": 190,
+          "9": 270,
+          "12": 360,
+          "description": "4 bins - Discounted re-delivery fee"
+        },
+        "10": {
+          "1": 95,
+          "3": 235,
+          "6": 450,
+          "9": 652.5,
+          "12": 810,
+          "description": "10 bins - Further discounted re-delivery fee"
+        },
+        "15": {
+          "1": 122.5,
+          "3": 337.5,
+          "6": 652.5,
+          "9": 945,
+          "12": 1170,
+          "description": "15 bins - Even more discount on re-delivery"
+        },
+        "20": {
+          "1": 150,
+          "3": 420,
+          "6": 810,
+          "9": 1170,
+          "12": 1440,
+          "description": "20 bins - Maximum discount on re-delivery"
+        }
+      }
+    },
+    "examples": {
+      "1_bin_1_month": {
+        "bins": 1,
+        "months": 1,
+        "storage": 7.5,
+        "redelivery": 39,
+        "total": 46.5,
+        "description": "1 bin for 1 month: $7.50 storage + $39 re-delivery = $46.50"
+      },
+      "20_bins_1_month": {
+        "bins": 20,
+        "months": 1,
+        "storage": 150,
+        "redelivery": 0,
+        "total": 150,
+        "description": "20 bins for 1 month: $150 storage + $0 re-delivery (FREE) = $150.00"
+      }
+    }
+  },
+  "monthToMonth": {
+    "description": "MONTH-TO-MONTH PAYMENT MODEL - Storage $7.50/month per bin. Re-delivery fee varies by term length only (not by bin count).",
+    "grid": {
+      "totals": {
+        "1": {
+          "1": 46.5,
+          "3": 61.5,
+          "6": 84,
+          "9": 106.5,
+          "12": 129,
+          "description": "1 bin pricing"
+        },
+        "4": {
+          "1": 69,
+          "3": 129,
+          "6": 219,
+          "9": 309,
+          "12": 399,
+          "description": "4 bins pricing"
+        },
+        "10": {
+          "1": 114,
+          "3": 264,
+          "6": 489,
+          "9": 714,
+          "12": 939,
+          "description": "10 bins pricing"
+        },
+        "15": {
+          "1": 151.5,
+          "3": 376.5,
+          "6": 714,
+          "9": 1051.5,
+          "12": 1350,
+          "description": "15 bins pricing"
+        },
+        "20": {
+          "1": 189,
+          "3": 489,
+          "6": 939,
+          "9": 1389,
+          "12": 1839,
+          "description": "20 bins pricing"
+        }
+      }
+    }
+  },
+  "savings": {
+    "description": "PREPAID PLAN SAVINGS AGAINST MONTH-TO-MONTH PAYMENTS",
+    "grid": {
+      "totals": {
+        "1": {
+          "1": 0,
+          "3": 9,
+          "6": 19,
+          "9": 29,
+          "12": 39,
+          "percentages": {
+            "1": 0,
+            "3": 14.6,
+            "6": 22.6,
+            "9": 27.2,
+            "12": 30.2
+          },
+          "description": "Savings for 1 bin"
+        },
+        "4": {
+          "1": 9,
+          "3": 19,
+          "6": 29,
+          "9": 39,
+          "12": 39,
+          "percentages": {
+            "1": 13.0,
+            "3": 14.7,
+            "6": 13.2,
+            "9": 12.6,
+            "12": 9.8
+          },
+          "description": "Savings for 4 bins"
+        },
+        "10": {
+          "1": 19,
+          "3": 29,
+          "6": 39,
+          "9": 61.5,
+          "12": 129,
+          "percentages": {
+            "1": 16.6,
+            "3": 11.0,
+            "6": 8.0,
+            "9": 8.6,
+            "12": 13.7
+          },
+          "description": "Savings for 10 bins"
+        },
+        "15": {
+          "1": 29,
+          "3": 39,
+          "6": 61.5,
+          "9": 106.5,
+          "12": 180,
+          "percentages": {
+            "1": 19.1,
+            "3": 10.4,
+            "6": 8.6,
+            "9": 10.1,
+            "12": 13.35
+          },
+          "description": "Savings for 15 bins"
+        },
+        "20": {
+          "1": 39,
+          "3": 69,
+          "6": 129,
+          "9": 219,
+          "12": 399,
+          "percentages": {
+            "1": 20.6,
+            "3": 14.1,
+            "6": 13.7,
+            "9": 15.8,
+            "12": 21.7
+          },
+          "description": "Savings for 20 bins"
+        }
+      }
+    }
+  },
+  "addons": {
+    "skis": {
+      "price": 6,
+      "name": "Skis/Snowboard",
+      "icon": "⛷️",
+      "description": "Winter sports equipment storage",
+      "monthly": true
+    },
+    "bike": {
+      "price": 12,
+      "name": "Bicycle",
+      "icon": "🚴",
+      "description": "Standard bike storage",
+      "monthly": true
+    },
+    "ebike": {
+      "price": 15,
+      "name": "E-Bike",
+      "icon": "🔋",
+      "description": "Electric bicycle storage",
+      "monthly": true
+    },
+    "tires": {
+      "price": 18,
+      "name": "Seasonal Tires (4)",
+      "icon": "🛞",
+      "description": "Complete tire set storage",
+      "monthly": true
+    },
+    "luggage": {
+      "price": 7,
+      "name": "Luggage",
+      "icon": "🧳",
+      "description": "Luggage storage",
+      "monthly": true
+    }
+  },
+  "climateControl": {
+    "enabled": false,
+    "price": 0,
+    "description": "Climate-Controlled Storage",
+    "percentage": 20,
+    "note": "Adds 20% to total storage cost"
+  },
+  "protectionPlans": {
+    "basic": {
+      "name": "Basic Protection",
+      "price": 0,
+      "limit": "Basic coverage",
+      "description": "Standard protection included with all plans",
+      "features": [
+        "Basic coverage",
+        "Standard claims process",
+        "No additional cost"
+      ],
+      "monthly": false,
+      "included": true
+    },
+    "enhanced": {
+      "name": "Enhanced Protection",
+      "price": 3,
+      "limit": "$500 limit",
+      "description": "Increased coverage for valuable items",
+      "features": [
+        "$500 coverage limit",
+        "Faster claims processing",
+        "Priority support",
+        "Extended coverage"
+      ],
+      "monthly": true,
+      "included": false
+    },
+    "premium": {
+      "name": "Premium Protection",
+      "price": 6,
+      "limit": "$1,500 limit",
+      "description": "Maximum coverage for high-value storage",
+      "features": [
+        "$1,500 coverage limit",
+        "Express claims processing",
+        "Dedicated support",
+        "Full replacement value"
+      ],
+      "monthly": true,
+      "included": false
+    }
+  },
+  "deliveryZones": {
+    "A": {
+      "miles": "0–7 mi",
+      "fee": 39,
+      "description": "Local area",
+      "color": "from-[#22c55e] to-[#16a34a]"
+    },
+    "B": {
+      "miles": "7.1–15 mi",
+      "fee": 59,
+      "description": "Extended area",
+      "color": "from-[#f8992f] to-[#e8911f]"
+    },
+    "C": {
+      "miles": "15.1–25 mi",
+      "fee": 89,
+      "description": "Outer area",
+      "color": "from-[#8e9293] to-[#6b6b6b]"
+    }
+  },
+  "bundles": {
+    "summer": {
+      "name": "Summer Student Bundle (May-Aug)",
+      "bins": 5,
+      "bulkyItem": 1,
+      "price": 229,
+      "months": 4,
+      "features": [
+        "5 storage bins",
+        "1 bulky item",
+        "Free pickup",
+        "1 free return"
+      ],
+      "extras": {
+        "bin": 25,
+        "bulky": 49
+      }
+    },
+    "ski": {
+      "name": "Ski Season Stash (Nov-Apr)",
+      "bins": 2,
+      "bulkyItem": 1,
+      "price": 149,
+      "months": 6,
+      "features": [
+        "2 storage bins",
+        "1 ski/snowboard",
+        "Seasonal storage",
+        "Tire storage option"
+      ],
+      "extras": {
+        "tireStorage": 99
+      }
+    }
+  },
+  "notes": [
+    "Storage + Re-Delivery Charge included in totals",
+    "Storage is shown as a monthly rate: $7.50 per bin",
+    "Re-Delivery is a one-time charge at end of the Pre-Paid Term",
+    "Storage rates are fixed at $7.50/month where pricing includes a 1-time re-delivery fee",
+    "The One-Time Re-delivery fee is discounted from the $39 delivery fee based on both the number of bins stored and the length of the pre-paid storage term",
+    "Delivery Fees are waived both as a function of number of bins stored and the length of the prepaid rental term",
+    "Discount only applies with a prepaid agreement that authorizes automatic charge to customer credit or debit card"
+  ]
+}
+

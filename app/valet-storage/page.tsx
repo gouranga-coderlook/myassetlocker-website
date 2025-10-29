@@ -10,11 +10,11 @@ export default function ValetStorage() {
         headline="Professional Valet Storage Service"
         // bodyText={`Convenient pickup, secure storage, and delivery service for your valuable items. Climate-controlled facilities ensure your belongings are safe and accessible.`}
         ctaButton={{
-          enabled: false,
-          text: "GET STARTED",
-          href: "/valet-storage/booking",
+          enabled: true,
+          text: "Book Now",
+          href: "/pricing",
         }}
-        appStoreButtons={true}
+        appStoreButtons={false}
       />
 
       {/* Overview */}

@@ -1,513 +1,454 @@
+"use client";
+import { useState } from "react";
 import Hero from "@/components/Hero";
+import AppShowcase from "@/components/AppShowcase";
+import StoragePlanStep from "@/components/booking-steps/StoragePlanStep";
+import DurationBinsStep from "@/components/booking-steps/DurationBinsStep";
+import AddonsStep from "@/components/booking-steps/AddonsStep";
+import DeliveryInformationStep from "@/components/booking-steps/DeliveryInformationStep";
+import SummaryStep from "@/components/booking-steps/SummaryStep";
+import pricingData from "@/lib/pricing-model.json";
 
-export default function Pricing() {
+export default function PricingPage() {
+  // Booking workflow state
+  const [currentStep, setCurrentStep] = useState(1);
+  const [plan, setPlan] = useState("prepaid");
+  const [selectedMonths, setSelectedMonths] = useState<number | null>(null);
+  const [selectedBins, setSelectedBins] = useState<number>(0);
+  const [selectedBundle, setSelectedBundle] = useState<string | null>(null);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const [climateControl, setClimateControl] = useState(false);
+  const [protectionPlan, setProtectionPlan] = useState<string>("basic");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+
+  // Use pricing data from JSON
+  const addonPricing: Record<
+    string,
+    { price: number; name: string; icon: string }
+  > = pricingData.addons as Record<
+    string,
+    { price: number; name: string; icon: string }
+  >;
+
+  const getDeliveryFeePerItem = () => {
+    if (plan === "monthly") return 39;
+    if (!selectedMonths) return 39;
+    if (selectedMonths >= 12) return 0;
+    if (selectedMonths >= 9) return 10;
+    if (selectedMonths >= 6) return 20;
+    if (selectedMonths >= 3) return 30;
+    return 39;
+  };
+
+  const handleBundleSelect = (type: string) => {
+    setSelectedBundle(type);
+    if (type === "summer") {
+      setSelectedMonths(4);
+      setSelectedBins(5);
+      setCurrentStep(4);
+    } else if (type === "ski") {
+      setSelectedMonths(6);
+      setSelectedBins(2);
+      setCurrentStep(4);
+    } else {
+      setCurrentStep(2);
+    }
+  };
+
+  const toggleAddon = (addon: string) => {
+    setSelectedAddons((prev) =>
+      prev.includes(addon) ? prev.filter((a) => a !== addon) : [...prev, addon]
+    );
+  };
+
+  /*
+   * PRICING MODEL EXPLANATION:
+   *
+   * ADVANCE PAYMENT MODEL (PREPAID):
+   * - Storage fee is FIXED at $7.50/month per bin
+   * - Re-delivery fee (normally $39 for 0-7 miles) is discounted based on:
+   *   1. Number of bins: More bins = less re-delivery fee per bin
+   *   2. Term length: Longer terms = additional re-delivery fee discount
+   *
+   * KEY INSIGHT: The discount is in the re-delivery fee, NOT the storage fee.
+   *
+   * Examples:
+   * - 1 bin for 1 month: $7.50 (storage) + $39 (re-delivery) = $46.50
+   * - 4 bins for 1 month: $30.00 (storage) + $30 (re-delivery) = $60.00
+   * - 20 bins for 1 month: $150.00 (storage) + $0 (re-delivery FREE) = $150.00
+   *
+   * MONTH-TO-MONTH MODEL:
+   * - Fixed $7.50/month per bin
+   * - Re-delivery fee is NOT discounted by number of bins
+   * - Standard $39 re-delivery fee applies (unless waived by term length)
+   */
+
+  const calculateBookingTotal = () => {
+    let total = 0;
+
+    // Check if a bundle is selected - use bundle pricing + extras
+    if (
+      selectedBundle &&
+      pricingData.bundles?.[selectedBundle as keyof typeof pricingData.bundles]
+    ) {
+      const bundleData =
+        pricingData.bundles[selectedBundle as keyof typeof pricingData.bundles];
+      total = bundleData.price || 0;
+
+      // Bundle includes bins, months, and re-delivery at fixed price
+      // But add-ons, climate control, and protection plans are extras
+
+      // Climate control (+20% on storage cost)
+      if (climateControl && selectedBins > 0 && selectedMonths) {
+        const storageCost = selectedBins * selectedMonths * 7.5;
+        total += storageCost * 0.2;
+      }
+
+      // Protection Plan
+      if (protectionPlan !== "basic" && selectedMonths) {
+        const planData =
+          pricingData.protectionPlans?.[
+            protectionPlan as keyof typeof pricingData.protectionPlans
+          ];
+        if (planData && planData.monthly) {
+          total += planData.price * selectedMonths;
+        }
+      }
+
+      // Note: Add-ons are typically not added to bundles as they include items
+
+      return total;
+    }
+
+    // Regular pricing calculation (no bundle)
+    // Base bin pricing
+    if (selectedBins > 0 && selectedMonths) {
+      if (plan === "prepaid") {
+        const prepaidTotal =
+          (pricingData.prepaid.grid.totals as unknown as Record<string, Record<string, number | string>>)[selectedBins.toString()]?.[
+            selectedMonths.toString()
+          ];
+        total += typeof prepaidTotal === "number" ? prepaidTotal : 0;
+      } else {
+        const monthlyTotal =
+          (pricingData.monthToMonth.grid.totals as unknown as Record<string, Record<string, number | string>>)[selectedBins.toString()]?.[
+            selectedMonths.toString()
+          ];
+        total += typeof monthlyTotal === "number" ? monthlyTotal : 0;
+      }
+    }
+
+    // Add-ons pricing
+    selectedAddons.forEach((addon) => {
+      total += (addonPricing[addon]?.price || 0) * (selectedMonths || 1);
+      total += getDeliveryFeePerItem();
+    });
+
+    // Climate control (+20%)
+    if (climateControl && (selectedBins > 0 || selectedAddons.length > 0)) {
+      const storageCost =
+        selectedBins > 0 && selectedMonths
+          ? selectedBins * selectedMonths * 7.5
+          : 0;
+      total += storageCost * 0.2;
+    }
+
+    // Protection Plan pricing
+    if (protectionPlan !== "basic" && selectedMonths) {
+      const planData =
+        pricingData.protectionPlans?.[
+          protectionPlan as keyof typeof pricingData.protectionPlans
+        ];
+      if (planData && planData.monthly) {
+        total += planData.price * selectedMonths;
+      }
+    }
+
+    return total;
+  };
+
+  // DUPLICATE - Removed. Using JSON import from lib/pricing-model.json
+  const pricingDataLocal: {
+    monthlyRatePerBin: number;
+    baseRedeliveryFee: number;
+    prepaidGrid: {
+      bins: number[];
+      months: number[];
+      totals: Record<string, Record<string, number>>;
+    };
+    mtmGrid: {
+      totals: Record<string, Record<string, number>>;
+    };
+  } = {
+    monthlyRatePerBin: 7.5,
+    baseRedeliveryFee: 39,
+    prepaidGrid: {
+      bins: [1, 4, 10, 15, 20],
+      months: [1, 3, 6, 9, 12],
+      totals: {
+        "1": { "1": 46.5, "3": 52.5, "6": 65, "9": 77.5, "12": 90 },
+        "4": { "1": 60, "3": 110, "6": 190, "9": 270, "12": 360 },
+        "10": { "1": 95, "3": 235, "6": 450, "9": 652.5, "12": 810 },
+        "15": { "1": 122.5, "3": 337.5, "6": 652.5, "9": 945, "12": 1170 },
+        "20": { "1": 150, "3": 420, "6": 810, "9": 1170, "12": 1440 },
+      },
+    },
+    mtmGrid: {
+      totals: {
+        "1": { "1": 46.5, "3": 61.5, "6": 84, "9": 106.5, "12": 129 },
+        "4": { "1": 69, "3": 129, "6": 219, "9": 309, "12": 399 },
+        "10": { "1": 114, "3": 264, "6": 489, "9": 714, "12": 939 },
+        "15": { "1": 151.5, "3": 376.5, "6": 714, "9": 1051.5, "12": 1350 },
+        "20": { "1": 189, "3": 489, "6": 939, "9": 1389, "12": 1839 },
+      },
+    },
+  };
+  const bins = pricingDataLocal.prepaidGrid.bins;
+  const months = pricingDataLocal.prepaidGrid.months;
+  const [binCount] = useState(String(bins[0]));
+  const [term] = useState(String(months[0]));
+
+  const prepaid = pricingDataLocal.prepaidGrid.totals[binCount]?.[term] || 0;
+  const mtm = pricingDataLocal.mtmGrid.totals[binCount]?.[term] || 0;
 
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
       <Hero
         backgroundImage="/household-storage-service.webp"
-        headline="Valet Storage Pricing"
-        bodyText={`Professional pickup, secure storage, and delivery service for your valuable items. Transparent pricing with no hidden fees.`}
+        headline="Simple, Transparent Storage Pricing"
+        bodyText="Pay per bin, add bulky items, and save with prepaid plans. No hidden fees, no surprises."
         ctaButton={{
           enabled: false,
         }}
-        appStoreButtons={true}
       />
-
-      {/* Storage Pricing */}
-      <section className="py-16 sm:py-20 md:py-24">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12 sm:mb-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
-                Storage Pricing
-              </h2>
-              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
-                Transparent monthly pricing with no hidden fees
-              </p>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-xl font-bold text-[#4c4946] mb-4">Standard Storage</h3>
-                  <ul className="space-y-3 text-[#8e9293]">
-                    <li className="flex justify-between items-center">
-                      <span>Per-bin (27–32 gal, ≤40 lb)</span>
-                      <span className="font-bold text-[#f8992f]">$7.50/mo</span>
-                    </li>
-                    <li className="flex justify-between items-center">
-                      <span>Climate-controlled add-on</span>
-                      <span className="font-bold text-[#f8992f]">+20%</span>
-                    </li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-[#4c4946] mb-4">Bulky Items</h3>
-                  <ul className="space-y-3 text-[#8e9293]">
-                    <li className="flex justify-between items-center">
-                      <span>Skis/Board</span>
-                      <span className="font-bold text-[#f8992f]">$6/mo</span>
-                    </li>
-                    <li className="flex justify-between items-center">
-                      <span>Bicycle</span>
-                      <span className="font-bold text-[#f8992f]">$12/mo</span>
-                    </li>
-                    <li className="flex justify-between items-center">
-                      <span>E-bike</span>
-                      <span className="font-bold text-[#f8992f]">$15/mo</span>
-                    </li>
-                    <li className="flex justify-between items-center">
-                      <span>Luggage</span>
-                      <span className="font-bold text-[#f8992f]">$6–$8/mo</span>
-                    </li>
-                    <li className="flex justify-between items-center">
-                      <span>Seasonal tire set (4)</span>
-                      <span className="font-bold text-[#f8992f]">$18/mo</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              
-              <div className="mt-8 pt-6 border-t border-[#e8e8e8]">
-                <h3 className="text-xl font-bold text-[#4c4946] mb-4">Commitment Discounts</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex justify-between items-center p-4 bg-[#fef7ed] rounded-xl">
-                    <span className="text-[#8e9293]">6-month commitment</span>
-                    <span className="font-bold text-[#f8992f]">–10%</span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-[#fef7ed] rounded-xl">
-                    <span className="text-[#8e9293]">12-month prepaid</span>
-                    <span className="font-bold text-[#f8992f]">–15%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Valet Storage Booking Workflow */}
+      <section className="py-20 px-4 relative bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
+        <div className="max-w-4xl mx-auto text-center mb-12">
+          <h1 className="text-4xl font-bold text-[#4c4946] mb-4">
+            📦 Valet Storage Booking
+          </h1>
+          <p className="text-lg text-[#8e9293] max-w-2xl mx-auto leading-relaxed">
+            Simple, convenient storage with pickup and delivery service.
+          </p>
         </div>
-      </section>
-
-      {/* Bundles */}
-      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12 sm:mb-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
-                Student & Seasonal Bundles
-              </h2>
-              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
-                Prepaid packages designed for students and seasonal storage needs
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-[#4c4946]">Summer Student</h3>
-                  <span className="text-2xl font-bold text-[#f8992f]">$229</span>
-                </div>
-                <p className="text-[#8e9293] mb-4">May–August prepaid package</p>
-                <ul className="space-y-3 text-[#8e9293]">
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Pickup + one return (group windows)
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    5 bins + 1 bulky (bike or skis)
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Extras: $25/bin, $49/bulky for term
-                  </li>
-                </ul>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-[#4c4946]">Ski Season Stash</h3>
-                  <span className="text-2xl font-bold text-[#f8992f]">$149</span>
-                </div>
-                <p className="text-[#8e9293] mb-4">November–April prepaid package</p>
-                <ul className="space-y-3 text-[#8e9293]">
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Pickup + one spring return
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    2 bins + 1 bulky (skis/board)
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Add seasonal tire storage: +$99 for term
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Delivery Pricing */}
-      <section className="py-16 sm:py-20 md:py-24">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12 sm:mb-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
-                Pickup & Delivery Pricing
-              </h2>
-              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
-                Flexible delivery options based on your location and timing needs
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-                <h3 className="text-xl font-bold text-[#4c4946] mb-6">Service Zones</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-4 bg-[#fef7ed] rounded-xl">
-                    <div>
-                      <div className="font-semibold text-[#4c4946]">Zone A</div>
-                      <div className="text-sm text-[#8e9293]">0–7 miles</div>
+        <div className="max-w-5xl mx-auto bg-transparent">
+          {/* Progress Bar */}
+          <div className="mb-6">
+            <ol className="flex items-center w-full">
+              {[
+                { num: 1, label: "Storage Type" },
+                { num: 2, label: "Duration & Bins" },
+                { num: 3, label: "Add-ons" },
+                { num: 4, label: "Delivery Info" },
+                { num: 5, label: "Summary" },
+              ].map(({ num, label }, index, array) => (
+                <li
+                  key={num}
+                  className={`relative flex flex-col w-full items-center ${
+                    index < array.length - 1
+                      ? "after:content-[''] after:w-full after:h-1 after:border-b after:border-4 after:inline-block after:absolute after:top-4 after:left-[calc(50%+17.5px)] after:right-0 " +
+                        (currentStep > num
+                          ? "after:border-[#22c55e]"
+                          : "after:border-gray-300")
+                      : ""
+                  }`}
+                >
+                  <div
+                    className="flex flex-col items-center shrink-0 cursor-pointer hover:scale-105 transition-all duration-300"
+                    onClick={() => setCurrentStep(num)}
+                  >
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${
+                        currentStep === num
+                          ? "bg-[#f8992f] text-white"
+                          : currentStep > num
+                          ? "bg-[#22c55e] text-white"
+                          : "bg-white border-2 border-gray-300 text-gray-400"
+                      }`}
+                    >
+                      {currentStep > num ? (
+                        <svg
+                          className="w-3.5 h-3.5 text-white lg:w-4 lg:h-4"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 16 12"
+                        >
+                          <path
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M1 5.917 5.724 10.5 15 1.5"
+                          />
+                        </svg>
+                      ) : (
+                        num
+                      )}
                     </div>
-                    <span className="text-2xl font-bold text-[#f8992f]">$39</span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-[#fef7ed] rounded-xl">
-                    <div>
-                      <div className="font-semibold text-[#4c4946]">Zone B</div>
-                      <div className="text-sm text-[#8e9293]">7.1–15 miles</div>
-                    </div>
-                    <span className="text-2xl font-bold text-[#f8992f]">$59</span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-[#fef7ed] rounded-xl">
-                    <div>
-                      <div className="font-semibold text-[#4c4946]">Zone C</div>
-                      <div className="text-sm text-[#8e9293]">15.1–25 miles</div>
-                    </div>
-                    <span className="text-2xl font-bold text-[#f8992f]">$89</span>
-                  </div>
-                </div>
-                <p className="text-sm text-[#8e9293] mt-4">Beyond 25 miles: custom quote</p>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-                <h3 className="text-xl font-bold text-[#4c4946] mb-6">Timing Options</h3>
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold text-[#4c4946] mb-3">Delivery Windows</h4>
-                    <ul className="space-y-2 text-[#8e9293]">
-                      <li className="flex justify-between">
-                        <span>Exact 1-hour window</span>
-                        <span className="font-bold text-[#f8992f]">+$20</span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span>Same-day delivery</span>
-                        <span className="font-bold text-[#f8992f]">+$35</span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span>Flexible window discount</span>
-                        <span className="font-bold text-[#f8992f]">–$10</span>
-                      </li>
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold text-[#4c4946] mb-3">Additional Services</h4>
-                    <ul className="space-y-2 text-[#8e9293]">
-                      <li className="flex justify-between">
-                        <span>On-site handling (20+ min)</span>
-                        <span className="font-bold text-[#f8992f]">$1/min</span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span>Stairs 3+ floors</span>
-                        <span className="font-bold text-[#f8992f]">+$15</span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span>Partial return pull</span>
-                        <span className="font-bold text-[#f8992f]">$5/item</span>
-                      </li>
-                      <li className="flex justify-between">
-                        <span>No-show/late cancel</span>
-                        <span className="font-bold text-[#f8992f]">$25</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Service Plans */}
-      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12 sm:mb-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
-                Service Plans
-              </h2>
-              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
-                Choose the plan that best fits your storage needs
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-[#4c4946]">Starter</h3>
-                  <span className="text-2xl font-bold text-[#f8992f]">$24/mo</span>
-                </div>
-                <p className="text-[#8e9293] mb-4">Apartment Closet</p>
-                <ul className="space-y-3 text-[#8e9293]">
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Up to 4 bins (then $7.50/bin)
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Zone A pickup –$39 with 4+ bins
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    1 free partial pull/mo
-                  </li>
-                </ul>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ring-2 ring-[#f8992f]">
-                <div className="text-center mb-4">
-                  <span className="bg-[#f8992f] text-white px-3 py-1 rounded-full text-sm font-semibold">
-                    Most Popular
-                  </span>
-                </div>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-[#4c4946]">Gear Plus</h3>
-                  <span className="text-2xl font-bold text-[#f8992f]">$39/mo</span>
-                </div>
-                <p className="text-[#8e9293] mb-4">Homeowner</p>
-                <ul className="space-y-3 text-[#8e9293]">
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    4 bins + 1 bulky included
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    –$10 on every delivery
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    +20% off tire storage
-                  </li>
-                </ul>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-[#4c4946]">Student Summer</h3>
-                  <span className="text-2xl font-bold text-[#f8992f]">$229</span>
-                </div>
-                <p className="text-[#8e9293] mb-4">Prepaid</p>
-                <ul className="space-y-3 text-[#8e9293]">
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Pickup + one return
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    5 bins + 1 bulky included
-                  </li>
-                  <li className="flex items-center">
-                    <svg className="w-4 h-4 text-[#f8992f] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Extras billed per term
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Add-ons */}
-      <section className="py-16 sm:py-20 md:py-24">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12 sm:mb-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
-                Optional Add-ons
-              </h2>
-              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
-                Enhance your storage experience with these optional services
-              </p>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-[#f8992f] to-[#e8911f] rounded-2xl flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-bold text-[#4c4946] mb-4">Photo Inventory</h3>
-                  <p className="text-[#8e9293] mb-4">Professional photo documentation with barcodes</p>
-                  <div className="text-2xl font-bold text-[#f8992f]">$1/item</div>
-                  <p className="text-sm text-[#8e9293] mt-2">One-time fee</p>
-                </div>
-
-                <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-[#f8992f] to-[#e8911f] rounded-2xl flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-bold text-[#4c4946] mb-4">Protection Plans</h3>
-                  <p className="text-[#8e9293] mb-4">Enhanced insurance coverage for your items</p>
-                  <div className="space-y-2">
-                    <div className="text-lg font-bold text-[#f8992f]">$3/mo</div>
-                    <p className="text-sm text-[#8e9293]">$500 limit</p>
-                    <div className="text-lg font-bold text-[#f8992f]">$6/mo</div>
-                    <p className="text-sm text-[#8e9293]">$1,500 limit</p>
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-[#f8992f] to-[#e8911f] rounded-2xl flex items-center justify-center">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-bold text-[#4c4946] mb-4">Packing Materials</h3>
-                  <p className="text-[#8e9293] mb-4">Professional packing supplies and containers</p>
-                  <div className="space-y-2 text-sm text-[#8e9293]">
-                    <div className="flex justify-between">
-                      <span>Tote rental</span>
-                      <span className="font-bold text-[#f8992f]">$2/mo</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Tote purchase</span>
-                      <span className="font-bold text-[#f8992f]">$25</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Wardrobe box</span>
-                      <span className="font-bold text-[#f8992f]">$12 + $8/mo</span>
+                    <div
+                      className={`mt-1.5 text-xs font-medium whitespace-nowrap ${
+                        currentStep === num
+                          ? "text-[#f8992f]"
+                          : currentStep > num
+                          ? "text-gray-700"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {label}
                     </div>
                   </div>
-                </div>
-              </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Step Content */}
+          <div className="min-h-[400px]">
+            {/* Step 1: Storage Type */}
+            {currentStep === 1 && (
+              <StoragePlanStep
+                plan={plan}
+                setPlan={setPlan}
+                selectedBundle={selectedBundle}
+                onBundleSelect={handleBundleSelect}
+              />
+            )}
+
+            {/* Step 2: Duration & Bins */}
+            {currentStep === 2 && (
+              <DurationBinsStep
+                selectedMonths={selectedMonths}
+                setSelectedMonths={setSelectedMonths}
+                selectedBins={selectedBins}
+                setSelectedBins={setSelectedBins}
+              />
+            )}
+            {/* Step 3: Add-ons */}
+            {currentStep === 3 && (
+              <AddonsStep
+                addonPricing={addonPricing}
+                selectedAddons={selectedAddons}
+                toggleAddon={toggleAddon}
+                climateControl={climateControl}
+                setClimateControl={setClimateControl}
+                getDeliveryFeePerItem={getDeliveryFeePerItem}
+                protectionPlans={pricingData.protectionPlans}
+                protectionPlan={protectionPlan}
+                setProtectionPlan={setProtectionPlan}
+              />
+            )}
+            {/* Step 4: Delivery Information */}
+            {currentStep === 4 && (
+              <DeliveryInformationStep
+                fullName={fullName}
+                setFullName={setFullName}
+                email={email}
+                setEmail={setEmail}
+                phone={phone}
+                setPhone={setPhone}
+                deliveryAddress={deliveryAddress}
+                setDeliveryAddress={setDeliveryAddress}
+                city={city}
+                setCity={setCity}
+                state={state}
+                setState={setState}
+                zipCode={zipCode}
+                setZipCode={setZipCode}
+                deliveryNotes={deliveryNotes}
+                setDeliveryNotes={setDeliveryNotes}
+              />
+            )}
+            {/* Step 5: Summary */}
+            {currentStep === 5 && (
+              <SummaryStep
+                plan={plan}
+                selectedMonths={selectedMonths}
+                selectedBins={selectedBins}
+                selectedAddons={selectedAddons}
+                climateControl={climateControl}
+                addonPricing={addonPricing}
+                calculateBookingTotal={calculateBookingTotal}
+                selectedBundle={selectedBundle}
+                bundles={pricingData.bundles}
+                protectionPlan={protectionPlan}
+                protectionPlans={pricingData.protectionPlans}
+                fullName={fullName}
+                setFullName={setFullName}
+                email={email}
+                setEmail={setEmail}
+                phone={phone}
+                setPhone={setPhone}
+              />
+            )}
+            {/* Navigation Buttons */}
+            <div className="flex justify-between mt-8 pt-8">
+              {currentStep > 1 && (
+                <button
+                  onClick={() => setCurrentStep((prev) => prev - 1)}
+                  className="px-8 py-3 bg-gray-200 text-gray-700 rounded-full font-semibold hover:bg-gray-300 transition cursor-pointer"
+                >
+                  Previous
+                </button>
+              )}
+              {currentStep < 5 && (
+                <button
+                  onClick={() => {
+                    if (currentStep === 2 && !selectedMonths) {
+                      alert("Please select a storage duration.");
+                      return;
+                    }
+                    setCurrentStep((prev) => prev + 1);
+                  }}
+                  className="ml-auto px-8 py-3 bg-gradient-to-r from-[#f8992f] to-[#e8911f] text-white rounded-full font-semibold hover:shadow-lg transition cursor-pointer"
+                >
+                  Next Step
+                </button>
+              )}
+              {currentStep === 5 && (
+                <button
+                  onClick={() => {
+                    alert("Booking submitted! Check console for details.");
+                    console.log({
+                      plan,
+                      selectedMonths,
+                      selectedBins,
+                      selectedAddons,
+                      climateControl,
+                      total: calculateBookingTotal(),
+                      contactDetails: {
+                        fullName,
+                        email,
+                        phone,
+                      },
+                      deliveryAddress: {
+                        address: deliveryAddress,
+                        city,
+                        state,
+                        zipCode,
+                        notes: deliveryNotes,
+                      },
+                    });
+                  }}
+                  className="ml-auto px-8 py-3 bg-gradient-to-r from-[#f8992f] to-[#e8911f] text-white rounded-full font-semibold hover:shadow-lg transition cursor-pointer"
+                >
+                  Complete Booking
+                </button>
+              )}
             </div>
           </div>
         </div>
       </section>
-
-      {/* Service Areas */}
-      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12 sm:mb-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[#4c4946] mb-4 sm:mb-6 px-4">
-                Service Area Zones
-              </h2>
-              <p className="text-lg sm:text-xl text-[#8e9293] max-w-3xl mx-auto leading-relaxed px-4">
-                We serve the greater Colorado Springs area with transparent zone-based pricing
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-[#4c4946]">Zone A</h3>
-                  <span className="text-sm text-[#8e9293]">0–7 miles</span>
-                </div>
-                <p className="text-[#8e9293] mb-4">Downtown/Colorado College, Old North End, UCCS, Old Colorado City, Ivywild, Broadmoor, central Powers corridor.</p>
-                <div className="text-2xl font-bold text-[#f8992f]">$39</div>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-[#4c4946]">Zone B</h3>
-                  <span className="text-sm text-[#8e9293]">7.1–15 miles</span>
-                </div>
-                <p className="text-[#8e9293] mb-4">Briargate, Rockrimmon, Cimarron Hills, Peterson area, Northgate.</p>
-                <div className="text-2xl font-bold text-[#f8992f]">$59</div>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-[#4c4946]">Zone C</h3>
-                  <span className="text-sm text-[#8e9293]">15.1–25 miles</span>
-                </div>
-                <p className="text-[#8e9293] mb-4">Monument/Palmer Lake, Falcon/Peyton, Fountain/Security-Widefield, Manitou Springs, Woodland Park.</p>
-                <div className="text-2xl font-bold text-[#f8992f]">$89</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-r from-[#f8992f] via-[#e8911f] to-[#c2751a] text-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 sm:mb-8">
-              Ready to Get Started?
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-300 mb-8 sm:mb-12 max-w-2xl mx-auto leading-relaxed">
-              Contact us today to schedule your pickup and experience the convenience of valet storage
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center">
-              <a
-                href="/contact"
-                className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-[#f8992f] to-[#e8911f] hover:from-[#e8911f] hover:to-[#c2751a] text-white font-bold text-lg uppercase tracking-wide rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 min-h-[56px]"
-              >
-                Get Started Today
-                <svg className="ml-3 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </a>
-              <a
-                href="/valet-storage"
-                className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white hover:bg-white hover:text-[#4c4946] font-bold text-lg uppercase tracking-wide rounded-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 min-h-[56px]"
-              >
-                Learn More
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* CTA Section */}
+      <AppShowcase />
     </div>
   );
 }
