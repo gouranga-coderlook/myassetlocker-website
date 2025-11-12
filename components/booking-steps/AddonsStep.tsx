@@ -1,35 +1,31 @@
 "use client";
+import { useMemo } from "react";
+import type { Addon, ProtectionPlan } from "@/store/slices/pricingSlice";
 
-interface AddonItem {
-  price: number;
-  name: string;
-  icon: string;
-}
-
-interface ProtectionPlanItem {
-  name: string;
-  price: number;
-  limit: string;
-  description: string;
-  monthly: boolean;
-  included: boolean;
-  popular?: boolean;
-}
+// Icon mapping for addons
+const ADDON_ICONS: Record<string, string> = {
+  "Skis/Snowboard": "⛷️",
+  "Bicycle": "🚴",
+  "E-Bike": "🔋",
+  "Climate-Controlled Storage": "🌡️",
+  "Seasonal Tires (4)": "🛞",
+  "Luggage": "🧳",
+};
 
 interface AddonsStepProps {
-  addonPricing: Record<string, AddonItem>;
+  addons: Addon[];
   selectedAddons: string[];
   toggleAddon: (addon: string) => void;
   climateControl: boolean;
   setClimateControl: (value: boolean) => void;
   getDeliveryFeePerItem: () => number;
-  protectionPlans: Record<string, ProtectionPlanItem>;
+  protectionPlans: ProtectionPlan[];
   protectionPlan: string;
   setProtectionPlan: (plan: string) => void;
 }
 
 export default function AddonsStep({
-  addonPricing,
+  addons,
   selectedAddons,
   toggleAddon,
   climateControl,
@@ -39,6 +35,15 @@ export default function AddonsStep({
   protectionPlan,
   setProtectionPlan,
 }: AddonsStepProps) {
+  // Filter out climate control as it's handled separately
+  const bulkyAddons = addons.filter(a => a.name !== "Climate-Controlled Storage");
+  const climateAddon = addons.find(a => a.name === "Climate-Controlled Storage");
+
+  // Sort protection plans by price (low to high)
+  const sortedProtectionPlans = useMemo(() => {
+    return [...protectionPlans].sort((a, b) => a.price - b.price);
+  }, [protectionPlans]);
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">Additional Services</h2>
@@ -53,44 +58,56 @@ export default function AddonsStep({
       <div className="mb-6">
         <h3 className="text-xl font-semibold mb-4">Bulky Items Storage</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Object.entries(addonPricing).map(([key, item]) => (
-            <div
-              key={key}
-              onClick={() => toggleAddon(key)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") toggleAddon(key);
-              }}
-              role="button"
-              tabIndex={0}
-              className={`flex items-center p-4 bg-white rounded-lg border-2 cursor-pointer transition ${
-                selectedAddons.includes(key)
-                  ? "border-[#f8992f]"
-                  : "border-gray-200 hover:border-[#f8992f]"
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={selectedAddons.includes(key)}
-                onChange={() => toggleAddon(key)}
-                className="w-5 h-5 mr-4"
-              />
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold">
-                    {item.icon} {item.name}
-                  </span>
-                  <span className="font-bold text-[#f8992f]">
-                    ${item.price}/month
-                  </span>
-                </div>
-                <div className="text-sm text-gray-500 mt-1">
-                  {getDeliveryFeePerItem() > 0
-                    ? `+ $${getDeliveryFeePerItem()} re-delivery fee`
-                    : "FREE re-delivery"}
+          {bulkyAddons.map((addon) => {
+            const addonKey = addon.name.toLowerCase().replace(/\s+/g, "");
+            const priceDisplay = addon.recurrence === "monthly" 
+              ? `$${addon.amount}/month`
+              : `$${addon.amount}`;
+            
+            return (
+              <div
+                key={addon.name}
+                onClick={() => toggleAddon(addonKey)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") toggleAddon(addonKey);
+                }}
+                role="button"
+                tabIndex={0}
+                className={`flex items-center p-4 bg-white rounded-lg border-2 cursor-pointer transition ${
+                  selectedAddons.includes(addonKey)
+                    ? "border-[#f8992f]"
+                    : "border-gray-200 hover:border-[#f8992f]"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedAddons.includes(addonKey)}
+                  onChange={() => toggleAddon(addonKey)}
+                  className="w-5 h-5 mr-4"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">
+                      {ADDON_ICONS[addon.name] || "📦"} {addon.name}
+                    </span>
+                    <span className="font-bold text-[#f8992f]">
+                      {priceDisplay}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">
+                    {addon.reDeliveryFee > 0
+                      ? `+ $${addon.reDeliveryFee} re-delivery fee`
+                      : "FREE re-delivery"}
+                  </div>
+                  {addon.description && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      {addon.description}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div
             onClick={() => setClimateControl(!climateControl)}
             onKeyDown={(e) => {
@@ -132,19 +149,27 @@ export default function AddonsStep({
       <div>
         <h3 className="text-xl font-semibold mb-4">Protection Plans</h3>
         <div className="grid gap-4 md:grid-cols-3">
-          {Object.entries(protectionPlans).map(
-            ([key, plan]: [string, ProtectionPlanItem]) => (
+          {sortedProtectionPlans.map((plan) => {
+            const planKey = plan.name.toLowerCase().includes("basic")
+              ? "basic"
+              : plan.name.toLowerCase().includes("enhanced")
+              ? "enhanced"
+              : plan.name.toLowerCase().includes("premium")
+              ? "premium"
+              : plan.name.toLowerCase().replace(/\s+/g, "");
+            
+            return (
               <div
-                key={key}
-                onClick={() => setProtectionPlan(key)}
+                key={plan.name}
+                onClick={() => setProtectionPlan(planKey)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ")
-                    setProtectionPlan(key);
+                    setProtectionPlan(planKey);
                 }}
                 role="button"
                 tabIndex={0}
                 className={`p-4 border-2 rounded-lg cursor-pointer transition bg-white ${
-                  protectionPlan === key
+                  protectionPlan === planKey
                     ? "border-[#f8992f]"
                     : "border-gray-200 hover:border-[#f8992f]"
                 }`}
@@ -153,25 +178,25 @@ export default function AddonsStep({
                   <input
                     type="radio"
                     name="protectionPlan"
-                    checked={protectionPlan === key}
-                    onChange={() => setProtectionPlan(key)}
+                    checked={protectionPlan === planKey}
+                    onChange={() => setProtectionPlan(planKey)}
                     className="w-4 h-4 mr-2"
                   />
                   <span className="font-bold text-lg">{plan.name}</span>
                 </div>
                 <div className="text-2xl font-bold text-[#f8992f] mb-2">
-                  {plan.price === 0 ? "Included" : `$${plan.price}/mo`}
+                  {plan.price === 0 ? "Included" : plan.displayPrice}
                 </div>
-                <div className="text-sm text-gray-600 mb-2">{plan.limit}</div>
+                <div className="text-sm text-gray-600 mb-2">{plan.displayLimit}</div>
                 <div className="text-sm text-gray-500">{plan.description}</div>
-                {plan.popular && (
+                {plan.name.toLowerCase().includes("premium") && (
                   <div className="mt-2 text-xs font-semibold text-[#22c55e]">
                     ✓ Most Popular
                   </div>
                 )}
               </div>
-            )
-          )}
+            );
+          })}
         </div>
       </div>
     </div>

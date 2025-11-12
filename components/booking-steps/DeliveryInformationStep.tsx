@@ -172,14 +172,6 @@ export default function DeliveryInformationStep({
           </div>
         </div>
       </div>
-
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h3 className="font-semibold mb-2">📍 Delivery Information</h3>
-        <p className="text-sm text-gray-600">
-          Standard delivery includes 0-7 mile radius. Re-delivery fees vary
-          based on plan type and duration.
-        </p>
-      </div>
     </div>
   );
 }
