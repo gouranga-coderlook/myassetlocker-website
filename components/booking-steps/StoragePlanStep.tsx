@@ -70,6 +70,7 @@ export default function StoragePlanStep({
               return (
                 <label
                   key={planItem.id}
+                  suppressHydrationWarning
                   className={`flex items-center space-x-3 cursor-pointer p-4 border-2 rounded-lg hover:border-[#f8992f] transition bg-white ${
                     isSelected ? "border-[#f8992f]" : "border-gray-200"
                   }`}
@@ -80,6 +81,7 @@ export default function StoragePlanStep({
                     value={planItem.id}
                     checked={isSelected}
                     onChange={() => setPlan(planItem)}
+                    suppressHydrationWarning
                     className="w-5 h-5"
                   />
                   <div
@@ -123,6 +125,7 @@ export default function StoragePlanStep({
                   }}
                   role="button"
                   tabIndex={0}
+                  suppressHydrationWarning
                   className={`bg-white p-4 rounded-lg border-2 cursor-pointer transition-all ${
                     selectedBundle === bundleKey
                       ? "border-[#f8992f]"
@@ -159,6 +162,7 @@ export default function StoragePlanStep({
               }}
               role="button"
               tabIndex={0}
+              suppressHydrationWarning
               className={`bg-white p-4 rounded-lg border-2 cursor-pointer transition-all ${
                 selectedBundle === "custom"
                   ? "border-[#f8992f]"

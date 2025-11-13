@@ -1,6 +1,7 @@
 "use client";
 import type { Addon, Bundle, Plan, ProtectionPlan } from "@/store/slices/pricingSlice";
 import { useMemo } from "react";
+import { useAppSelector } from "@/store/hooks";
 
 interface SummaryStepProps {
   readonly plan: Plan | null;
@@ -47,6 +48,9 @@ export default function SummaryStep({
   monthToMonthPlan,
   getDeliveryFeePerItem,
 }: SummaryStepProps) {
+  // Fetch location data from Redux store
+  const locationData = useAppSelector((state) => state.cart.locationData);
+  
   // Calculate cost breakdown
   const costBreakdown = useMemo(() => {
     let baseStorageCost = 0;
@@ -316,6 +320,31 @@ export default function SummaryStep({
             <span className="text-gray-600">Re-delivery Fee:</span>
             <span className="font-semibold">
               ${costBreakdown.redeliveryFee.toFixed(2)}
+            </span>
+          </div>
+        )}
+
+        {/* Delivery Zone with Price */}
+        {locationData?.matchedZone && (
+          <div className="flex justify-between py-2 border-b border-gray-200">
+            <span className="text-gray-600">Delivery Zone ({locationData.matchedZone.zoneName}):</span>
+            <span className="font-semibold">
+              ${locationData.matchedZone.price.toFixed(2)}
+            </span>
+          </div>
+        )}
+
+        {/* Delivery Charge (when matchedZone is null but deliveryCharge exists) */}
+        {!locationData?.matchedZone && locationData?.deliveryCharge && typeof locationData.deliveryCharge === 'number' && (
+          <div className="flex justify-between py-2 border-b border-gray-200">
+            <span className="text-gray-600">Delivery Charge:</span>
+            <span className="font-semibold">
+              ${(() => {
+                const region = locationData.nearestStore?.region?.toLowerCase();
+                const charge = locationData.deliveryCharge;
+                // Convert rupees to USD if region is India (1 USD ≈ 83 INR)
+                return region === 'india' ? (charge / 83).toFixed(2) : charge.toFixed(2);
+              })()}
             </span>
           </div>
         )}

@@ -111,6 +111,7 @@ const AppShowcase = memo(function AppShowcase() {
               {/* Navigation Arrows */}
               <button
                 onClick={prevSlide}
+                suppressHydrationWarning
                 className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg transition-all duration-200 z-10"
                 aria-label="Previous screenshot"
               >
@@ -131,6 +132,7 @@ const AppShowcase = memo(function AppShowcase() {
 
               <button
                 onClick={nextSlide}
+                suppressHydrationWarning
                 className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg transition-all duration-200 z-10"
                 aria-label="Next screenshot"
               >
@@ -156,6 +158,7 @@ const AppShowcase = memo(function AppShowcase() {
                 <button
                   key={index}
                   onClick={() => goToSlide(index)}
+                  suppressHydrationWarning
                   className={`w-3 h-3 rounded-full transition-all duration-200 ${
                     index === currentSlide
                       ? "bg-primary-500 scale-125"

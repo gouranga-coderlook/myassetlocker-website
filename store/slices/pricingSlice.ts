@@ -47,11 +47,23 @@ export interface ProtectionPlan {
     description: string;
 }
 
+export interface DeliveryZone {
+    id: string;
+    zoneName: string;
+    description: string;
+    distanceRange: string;
+    distanceMin: number;
+    distanceMax: number;
+    price: number;
+    status: string;
+}
+
 export interface Pricing {
     plans: Plan[];
     bundles: Bundle[];
     addons: Addon[];
     protection_plans: ProtectionPlan[];
+    deliveryZones?: DeliveryZone[] | { data?: DeliveryZone[] };
 }
 
 interface PricingState {

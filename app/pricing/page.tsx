@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import toast from "react-hot-toast";
 import Hero from "@/components/Hero";
 import AppShowcase from "@/components/AppShowcase";
+import StoreLocationFinder from "@/components/StoreLocationFinder";
 import StoragePlanStep from "@/components/booking-steps/StoragePlanStep";
 import DurationBinsStep from "@/components/booking-steps/DurationBinsStep";
 import AddonsStep from "@/components/booking-steps/AddonsStep";
@@ -253,6 +254,16 @@ export default function PricingPage() {
         total += protectionPlan.price * selectedMonths;
       }
 
+      // Add delivery zone/charge
+      if (cart.locationData?.matchedZone) {
+        total += cart.locationData.matchedZone.price;
+      } else if (cart.locationData?.deliveryCharge && typeof cart.locationData.deliveryCharge === 'number') {
+        const region = cart.locationData.nearestStore?.region?.toLowerCase();
+        const charge = cart.locationData.deliveryCharge;
+        // Convert rupees to USD if region is India (1 USD ≈ 83 INR)
+        total += region === 'india' ? charge / 83 : charge;
+      }
+
       return total;
     }
 
@@ -295,6 +306,16 @@ export default function PricingPage() {
     // Protection Plan pricing
     if (protectionPlan && selectedMonths) {
       total += protectionPlan.price * selectedMonths;
+    }
+
+    // Add delivery zone/charge
+    if (cart.locationData?.matchedZone) {
+      total += cart.locationData.matchedZone.price;
+    } else if (cart.locationData?.deliveryCharge && typeof cart.locationData.deliveryCharge === 'number') {
+      const region = cart.locationData.nearestStore?.region?.toLowerCase();
+      const charge = cart.locationData.deliveryCharge;
+      // Convert rupees to USD if region is India (1 USD ≈ 83 INR)
+      total += region === 'india' ? charge / 83 : charge;
     }
 
     return total;
@@ -450,6 +471,10 @@ export default function PricingPage() {
           enabled: false,
         }}
       />
+      {/* Store Location Finder */}
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <StoreLocationFinder />
+      </div>
       {/* Valet Storage Booking Workflow */}
       <section className="py-20 px-4 relative bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
         <div className="max-w-4xl mx-auto text-center mb-12">
@@ -639,6 +664,7 @@ export default function PricingPage() {
                       setCurrentStep((prev) => prev - 1);
                     }
                   }}
+                  suppressHydrationWarning
                   className="px-8 py-3 bg-gray-200 text-gray-700 rounded-full font-semibold hover:bg-gray-300 transition cursor-pointer"
                 >
                   Previous
@@ -717,6 +743,7 @@ export default function PricingPage() {
                     // Default: go to next step
                     setCurrentStep((prev) => prev + 1);
                   }}
+                  suppressHydrationWarning
                   className="ml-auto px-8 py-3 bg-gradient-to-r from-[#f8992f] to-[#e8911f] text-white rounded-full font-semibold hover:shadow-lg transition cursor-pointer"
                 >
                   Next Step
@@ -747,6 +774,7 @@ export default function PricingPage() {
                       },
                     });
                   }}
+                  suppressHydrationWarning
                   className="ml-auto px-8 py-3 bg-gradient-to-r from-[#f8992f] to-[#e8911f] text-white rounded-full font-semibold hover:shadow-lg transition cursor-pointer"
                 >
                   Complete Booking

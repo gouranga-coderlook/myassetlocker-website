@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type { Plan, Bundle, Addon, ProtectionPlan } from "./pricingSlice";
+import type { Plan, Bundle, Addon, ProtectionPlan, DeliveryZone } from "./pricingSlice";
 
 export interface DeliveryInformation {
   fullName: string;
@@ -10,6 +10,29 @@ export interface DeliveryInformation {
   state: string;
   zipCode: string;
   deliveryNotes: string;
+}
+
+export interface LocationData {
+  latitude: number | null;
+  longitude: number | null;
+  addressDetails: {
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    fullAddress: string;
+  } | null;
+  nearestStore: {
+    id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    region: "india" | "usa";
+  } | null;
+  distanceKm: number | null;
+  deliveryCharge: number | "out_of_area" | null;
+  matchedZone: DeliveryZone | null;
 }
 
 export interface DurationBins {
@@ -48,6 +71,9 @@ export interface BookingCart {
   
   // Delivery information
   deliveryInfo: DeliveryInformation;
+  
+  // Location data from StoreLocationFinder
+  locationData: LocationData | null;
   
   // Metadata
   createdAt?: string;
@@ -98,6 +124,8 @@ const initialState: BookingCart = {
     zipCode: "",
     deliveryNotes: "",
   },
+  
+  locationData: null,
 };
 
 const cartSlice = createSlice({
@@ -225,6 +253,20 @@ const cartSlice = createSlice({
       state.updatedAt = new Date().toISOString();
     },
 
+    // Location data actions
+    setLocationData: (state, action: PayloadAction<LocationData | null>) => {
+      state.locationData = action.payload;
+      state.updatedAt = new Date().toISOString();
+    },
+
+    updateLocationData: (state, action: PayloadAction<Partial<LocationData>>) => {
+      state.locationData = {
+        ...state.locationData,
+        ...action.payload,
+      } as LocationData;
+      state.updatedAt = new Date().toISOString();
+    },
+
     // Bulk update action for multiple fields at once
     updateCart: (state, action: PayloadAction<Partial<BookingCart>>) => {
       Object.assign(state, {
@@ -282,6 +324,10 @@ export const {
   // Delivery info
   setDeliveryInfo,
   updateDeliveryField,
+  
+  // Location data
+  setLocationData,
+  updateLocationData,
   
   // Bulk operations
   updateCart,
