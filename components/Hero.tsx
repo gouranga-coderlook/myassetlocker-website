@@ -10,9 +10,12 @@ interface HeroProps {
     readonly enabled: boolean;
     readonly text?: string;
     readonly href?: string;
+    /** When true, opens the link in a new tab (target="_blank"). */
+    readonly openInNewTab?: boolean;
   };
   readonly isHomePage?: boolean;
   readonly appStoreButtons?: boolean;
+  readonly height?: "default" | "compact";
 }
 
 export default function Hero({
@@ -21,13 +24,22 @@ export default function Hero({
   bodyText,
   ctaButton,
   isHomePage = false,
-  appStoreButtons = false
+  appStoreButtons = false,
+  height = "default"
 }: Readonly<HeroProps>) {
+  const heightClass = isHomePage 
+    ? "" 
+    : height === "compact" 
+    ? "h-[35vh]" 
+    : "h-[60vh]";
+  
+  const paddingClass = height === "compact" 
+    ? "py-6 sm:py-8 md:py-10" 
+    : "py-12 sm:py-16 md:py-20";
+
   return (
     <section
-      className={`relative flex items-center ${
-        isHomePage ? "" : "h-[60vh]"
-      } overflow-hidden`}
+      className={`relative flex items-center ${heightClass} overflow-hidden`}
     >
       {/* Background Image with Overlay */}
       <div
@@ -42,7 +54,7 @@ export default function Hero({
 
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center py-12 sm:py-16 md:py-20">
+        <div className={`max-w-4xl mx-auto text-center ${paddingClass}`}>
           {/* Logo */}
           {isHomePage && (
             <div className="mb-8 sm:mb-12">
@@ -57,37 +69,71 @@ export default function Hero({
           )}
 
           {/* Headline */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 sm:mb-8 leading-tight px-4">
+          <h1 className={`font-bold text-white leading-tight px-4 ${
+            height === "compact" 
+              ? "text-2xl sm:text-3xl md:text-4xl mb-3 sm:mb-4" 
+              : "text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-6 sm:mb-8"
+          }`}>
             {headline}
           </h1>
 
           {/* Body Text */}
-          <div className="text-base sm:text-lg md:text-xl text-gray-200 mb-4 sm:mb-12 leading-relaxed max-w-3xl mx-auto px-4">
-            {bodyText}
-          </div>
+          {bodyText && (
+            <div className={`text-gray-200 leading-relaxed max-w-3xl mx-auto px-4 ${
+              height === "compact" 
+                ? "text-sm sm:text-base mb-2 sm:mb-4" 
+                : "text-base sm:text-lg md:text-xl mb-4 sm:mb-12"
+            }`}>
+              {bodyText}
+            </div>
+          )}
 
           {/* CTA Button */}
           {ctaButton?.enabled && (
             <div className="px-4">
-              <Link
-                href={ctaButton.href || "/"}
-                className="inline-flex items-center justify-center px-6 sm:px-8 md:px-10 py-4 sm:py-5 bg-gradient-to-r from-[#f8992f] to-[#e8911f] hover:from-[#e8911f] hover:to-[#c2751a] text-white font-bold text-base sm:text-lg uppercase tracking-wide rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 min-h-[48px] sm:min-h-[56px] w-full sm:w-auto"
-              >
-                {ctaButton?.text}
-                <svg
-                  className="ml-2 sm:ml-3 w-4 h-4 sm:w-5 sm:h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              {ctaButton.openInNewTab ? (
+                <a
+                  href={ctaButton.href || "/"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center px-6 sm:px-8 md:px-10 py-4 sm:py-5 bg-gradient-to-r from-[#f8992f] to-[#e8911f] hover:from-[#e8911f] hover:to-[#c2751a] text-white font-bold text-base sm:text-lg uppercase tracking-wide rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 min-h-[48px] sm:min-h-[56px] w-full sm:w-auto"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7l5 5m0 0l-5 5m5-5H6"
-                  />
-                </svg>
-              </Link>
+                  {ctaButton?.text}
+                  <svg
+                    className="ml-2 sm:ml-3 w-4 h-4 sm:w-5 sm:h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
+                </a>
+              ) : (
+                <Link
+                  href={ctaButton.href || "/"}
+                  className="inline-flex items-center justify-center px-6 sm:px-8 md:px-10 py-4 sm:py-5 bg-gradient-to-r from-[#f8992f] to-[#e8911f] hover:from-[#e8911f] hover:to-[#c2751a] text-white font-bold text-base sm:text-lg uppercase tracking-wide rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 min-h-[48px] sm:min-h-[56px] w-full sm:w-auto"
+                >
+                  {ctaButton?.text}
+                  <svg
+                    className="ml-2 sm:ml-3 w-4 h-4 sm:w-5 sm:h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
+                </Link>
+              )}
             </div>
           )}
           {appStoreButtons && (

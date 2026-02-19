@@ -54,9 +54,9 @@ export function ThemeProvider({
       const initialTheme = storedTheme || defaultTheme;
       setThemeState(initialTheme);
       setMounted(true);
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error("Error accessing localStorage for theme:", error);
       // Fallback if localStorage is not available
-      console.warn('localStorage not available, using default theme:', error);
       setThemeState(defaultTheme);
       setMounted(true);
     }
@@ -68,8 +68,9 @@ export function ThemeProvider({
       try {
         applyTheme(theme);
         localStorage.setItem(storageKey, theme);
-      } catch (error) {
-        console.warn('Failed to apply theme or save to localStorage:', error);
+      } catch (error: unknown) {
+        // Silently handle localStorage errors
+        console.error("Error setting theme in localStorage:", error);
       }
     }
   }, [theme, mounted, storageKey]);

@@ -1,26 +1,21 @@
-// Example server-side function to fetch session/auth data
-// This is a placeholder - replace with your actual authentication logic
+// Server-side function to fetch session/auth data
+// Note: This runs on the server, so localStorage is not available
+// Auth state is managed client-side via Redux and localStorage
 
 export async function getSessionLikeData() {
-  // Example: Fetch session from cookies, database, or external API
-  // For now, returning null as placeholder
-  
+  // Server-side: Return null as auth is managed client-side
+  // The client will hydrate auth state from localStorage in Providers component
   try {
-    // Example implementation:
-    // const session = await fetchSessionFromDatabase();
-    // return {
-    //   token: session?.token,
-    //   user: session?.user,
-    // };
-    
     return {
-      token: undefined,
+      accessToken: undefined,
+      refreshToken: undefined,
       user: null,
     };
-  } catch (error) {
-    console.error("Error fetching session:", error);
+  } catch (error: unknown) {
+    console.error("Error fetching session-like data:", error);
     return {
-      token: undefined,
+      accessToken: undefined,
+      refreshToken: undefined,
       user: null,
     };
   }

@@ -1,19 +1,16 @@
 "use client";
 
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { setDeliveryInfo, updateDeliveryField } from "@/store/slices/cartSlice";
-import { useEffect, useState, useMemo } from "react";
+import { setProfilePhoneCountryCode } from "@/store/slices/profileSlice";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import {
   validatePhoneNumber,
-  getPhonePlaceholder,
-  getPhoneFormatHint,
   detectCountryFromLocation,
-  getCountryFlag,
-  getCountryName,
   getAllCountries,
   getCountryInfo,
   type CountryCode,
 } from "@/lib/utils/phoneValidation";
+import { findAddress, type AddressSuggestion } from "@/lib/api/addressService";
 
 interface DeliveryInformationStepProps {
   fullName: string;
@@ -53,31 +50,52 @@ export default function DeliveryInformationStep({
   setDeliveryNotes,
 }: DeliveryInformationStepProps) {
   const dispatch = useAppDispatch();
-  
-  // Fetch delivery information from Redux store
-  const deliveryInfo = useAppSelector((state) => state.cart.deliveryInfo);
-  
   // Fetch location data to auto-fill address fields if available
-  const locationData = useAppSelector((state) => state.cart.locationData);
+  const locationData = useAppSelector((storeState) => storeState.cart.locationData);
+  // Full name, phone country code, and national phone number from profile store
+  const profile = useAppSelector((storeState) => storeState.profile.profileData);
+  const displayFullName = fullName || profile?.fullName || "";
+  const profilePhoneCountryCode = profile?.phoneCountryCode;
+  const displayPhone = phone || profile?.phoneNumber || "";
   
   // Phone validation state
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [phoneTouched, setPhoneTouched] = useState(false);
+  
+  // Address autocomplete state
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Detect country from location data (initial/default)
   const defaultCountry = useMemo(() => {
     return detectCountryFromLocation(locationData);
   }, [locationData]);
   
-  // Selected country (user can change this)
-  const [selectedCountry, setSelectedCountry] = useState<CountryCode>(defaultCountry);
+  // Resolve initial country: profile store (from mobile number) if valid, else location-based default
+  const resolvedDefaultCountry = useMemo(() => {
+    if (profilePhoneCountryCode) {
+      const info = getCountryInfo(profilePhoneCountryCode as CountryCode);
+      if (info.code !== "UNKNOWN") return info.code as CountryCode;
+    }
+    return defaultCountry;
+  }, [profilePhoneCountryCode, defaultCountry]);
   
-  // Update selected country when location data changes (only if user hasn't manually selected)
+  // Selected country (user can change this); initialize from profile store or default
+  const [selectedCountry, setSelectedCountry] = useState<CountryCode>(resolvedDefaultCountry);
+  
+  // Sync selected country from profile store when profile has phoneCountryCode (from mobile number)
   useEffect(() => {
-    if (defaultCountry && !phoneTouched) {
+    if (profilePhoneCountryCode) {
+      const info = getCountryInfo(profilePhoneCountryCode as CountryCode);
+      if (info.code !== "UNKNOWN") setSelectedCountry(info.code as CountryCode);
+    } else if (defaultCountry && !phoneTouched) {
       setSelectedCountry(defaultCountry);
     }
-  }, [defaultCountry, phoneTouched]);
+  }, [profilePhoneCountryCode, defaultCountry, phoneTouched]);
   
   // Get all countries for dropdown
   const allCountries = useMemo(() => {
@@ -98,48 +116,11 @@ export default function DeliveryInformationStep({
     return countryInfo.hint;
   }, [countryInfo]);
   
-  // Get country flag and name
-  const countryFlag = useMemo(() => {
-    return countryInfo.flag;
-  }, [countryInfo]);
-  
   const countryName = useMemo(() => {
     return countryInfo.name;
   }, [countryInfo]);
   
-  // Load delivery info from Redux on mount (only if local state is empty)
-  useEffect(() => {
-    if (deliveryInfo) {
-      if (deliveryInfo.fullName && !fullName) {
-        setFullName(deliveryInfo.fullName);
-      }
-      if (deliveryInfo.email && !email) {
-        setEmail(deliveryInfo.email);
-      }
-      if (deliveryInfo.phone && !phone) {
-        // Format and validate phone when loading from Redux (use selectedCountry which is initialized from defaultCountry)
-        const validation = validatePhoneNumber(deliveryInfo.phone, locationData, { country: selectedCountry });
-        setPhone(validation.formatted);
-        // Don't show error on initial load, only validate if user interacts
-      }
-      if (deliveryInfo.deliveryAddress && !deliveryAddress) {
-        setDeliveryAddress(deliveryInfo.deliveryAddress);
-      }
-      if (deliveryInfo.city && !city) {
-        setCity(deliveryInfo.city);
-      }
-      if (deliveryInfo.state && !state) {
-        setState(deliveryInfo.state);
-      }
-      if (deliveryInfo.zipCode && !zipCode) {
-        setZipCode(deliveryInfo.zipCode);
-      }
-      if (deliveryInfo.deliveryNotes && !deliveryNotes) {
-        setDeliveryNotes(deliveryInfo.deliveryNotes);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Note: No longer loading from Redux - using props from parent component (local state) only
   
   // Auto-fill address fields from location data if available (only once)
   useEffect(() => {
@@ -147,28 +128,139 @@ export default function DeliveryInformationStep({
       const address = locationData.addressDetails;
       if (address.street && address.street !== 'Not available') {
         setDeliveryAddress(address.street);
-        dispatch(updateDeliveryField({ field: 'deliveryAddress', value: address.street }));
       }
       if (address.city && address.city !== 'Not available') {
         setCity(address.city);
-        dispatch(updateDeliveryField({ field: 'city', value: address.city }));
       }
       if (address.state && address.state !== 'Not available') {
         setState(address.state);
-        dispatch(updateDeliveryField({ field: 'state', value: address.state }));
       }
       if (address.postalCode && address.postalCode !== 'Not available') {
         setZipCode(address.postalCode);
-        dispatch(updateDeliveryField({ field: 'zipCode', value: address.postalCode }));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationData]);
   
-  // Update Redux store when fields change
-  const handleFieldChange = (field: keyof typeof deliveryInfo, value: string) => {
-    dispatch(updateDeliveryField({ field, value }));
+  // Note: No Redux updates - parent component manages state via props
+  const handleFieldChange = (_field: string, _value: string) => {
+    console.log(`Field ${_field} changed to: ${_value}`);
+    // No-op: parent component handles state updates via setter props
   };
+
+  // Address autocomplete search function with debouncing
+  const searchAddresses = useCallback(async (query: string) => {
+    if (!query || query.length < 3) {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsSearchingAddress(true);
+    try {
+      const suggestions = await findAddress({
+        partialStreet: query,
+        cityFilter: city || undefined,
+        stateFilter: state || undefined,
+        pcFilter: zipCode || undefined,
+        countryFilter: countryName || undefined,
+      });
+      setAddressSuggestions(suggestions);
+      setShowSuggestions(suggestions.length > 0);
+    } catch (error) {
+      console.error("Error searching addresses:", error);
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  }, [city, state, zipCode, countryName]);
+
+  // Handle street address input change with debounced search
+  const handleAddressInputChange = (value: string) => {
+    setDeliveryAddress(value);
+    handleFieldChange('deliveryAddress', value);
+
+    // When street address is blank, clear dependent address fields (industry standard)
+    if (!value.trim()) {
+      setCity('');
+      handleFieldChange('city', '');
+      setState('');
+      handleFieldChange('state', '');
+      setZipCode('');
+      handleFieldChange('zipCode', '');
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+    }
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounce address search
+    searchTimeoutRef.current = setTimeout(() => {
+      searchAddresses(value);
+    }, 300);
+  };
+
+  // Handle address suggestion selection
+  const handleAddressSelect = (suggestion: AddressSuggestion) => {
+    // Populate all address fields from selected suggestion
+    if (suggestion.street) {
+      setDeliveryAddress(suggestion.street);
+      handleFieldChange('deliveryAddress', suggestion.street);
+    }
+    if (suggestion.city) {
+      setCity(suggestion.city);
+      handleFieldChange('city', suggestion.city);
+    }
+    if (suggestion.state) {
+      setState(suggestion.state);
+      handleFieldChange('state', suggestion.state);
+    }
+    if (suggestion.postalCode) {
+      setZipCode(suggestion.postalCode);
+      handleFieldChange('zipCode', suggestion.postalCode);
+    }
+    
+    // Close suggestions dropdown
+    setShowSuggestions(false);
+    setAddressSuggestions([]);
+    
+    // Focus back on input
+    if (addressInputRef.current) {
+      addressInputRef.current.focus();
+    }
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        addressInputRef.current &&
+        !addressInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
   
   // Handle phone number input with validation and formatting
   const handlePhoneChange = (value: string) => {
@@ -210,17 +302,18 @@ export default function DeliveryInformationStep({
     }
   };
   
-  // Handle phone blur - mark as touched and validate
+  // Handle phone blur - mark as touched and validate (use displayed value so profile.phoneNumber is validated)
   const handlePhoneBlur = () => {
     setPhoneTouched(true);
-    const validation = validatePhoneNumber(phone, locationData, { country: selectedCountry });
+    const validation = validatePhoneNumber(displayPhone, locationData, { country: selectedCountry });
     setPhoneError(validation.errorMessage);
   };
   
-  // Handle country change
+  // Handle country change: update local state and persist to profile store
   const handleCountryChange = (newCountry: CountryCode) => {
     setSelectedCountry(newCountry);
     setPhoneTouched(true);
+    dispatch(setProfilePhoneCountryCode(newCountry));
     
     // Reformat existing phone number with new country
     if (phone) {
@@ -259,7 +352,7 @@ export default function DeliveryInformationStep({
             </label>
             <input
               type="text"
-              value={fullName}
+              value={displayFullName}
               onChange={(e) => {
                 setFullName(e.target.value);
                 handleFieldChange('fullName', e.target.value);
@@ -288,12 +381,12 @@ export default function DeliveryInformationStep({
           <div>
             <label className="flex items-center gap-2 text-sm font-semibold mb-2">
               <span>📱</span> Phone Number *
-              {!phone && (
-              <p className="mt-1 text-xs text-gray-500">
+            </label>
+            {!displayPhone && (
+              <p className="mt-1 text-xs text-gray-500 mb-2">
                 {phoneFormatHint}
               </p>
             )}
-            </label>
             {/* Combined Country Selector and Phone Input */}
             <div className="relative flex items-center border-2 border-gray-200 rounded-lg focus-within:ring-1 focus-within:ring-transparent focus-within:border-[#f8992f] transition">
               {/* Country Flag Button with Dropdown */}
@@ -311,9 +404,9 @@ export default function DeliveryInformationStep({
                     </option>
                   ))}
                 </select>
-                {/* Display country code when closed (overlay) */}
+                {/* Display country dial code when closed (e.g. +1, +91) so phone shows with country code */}
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 text-sm font-semibold text-gray-700">
-                  {selectedCountry}
+                  +{countryInfo.dialCode}
                 </div>
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                   <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -324,10 +417,10 @@ export default function DeliveryInformationStep({
                 <div className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-px bg-gray-300"></div>
               </div>
               
-              {/* Phone Input */}
+              {/* Phone Input - show national number from profile.phoneNumber when prop empty */}
               <input
                 type="tel"
-                value={phone}
+                value={displayPhone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
                 onBlur={handlePhoneBlur}
                 placeholder={phonePlaceholder}
@@ -343,7 +436,7 @@ export default function DeliveryInformationStep({
                 {phoneError}
               </p>
             )}
-            {!phoneError && phone && phoneTouched && (
+            {!phoneError && displayPhone && phoneTouched && (
               <p className="mt-1 text-xs text-green-600">
                 ✓ Valid {countryName} phone number
               </p>
@@ -359,21 +452,60 @@ export default function DeliveryInformationStep({
           Where should we pick up your items?
         </p>
         <div className="space-y-4">
-          <div>
+          <div className="relative">
             <label className="flex items-center gap-2 text-sm font-semibold mb-2">
               <span>🏠</span> Street Address *
             </label>
-            <input
-              type="text"
-              value={deliveryAddress}
-              onChange={(e) => {
-                setDeliveryAddress(e.target.value);
-                handleFieldChange('deliveryAddress', e.target.value);
-              }}
-              placeholder="123 Main Street"
-              required
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] transition"
-            />
+            <div className="relative">
+              <input
+                ref={addressInputRef}
+                type="text"
+                value={deliveryAddress}
+                onChange={(e) => handleAddressInputChange(e.target.value)}
+                onFocus={() => {
+                  if (addressSuggestions.length > 0) {
+                    setShowSuggestions(true);
+                  }
+                }}
+                placeholder="123 Main Street"
+                required
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] transition"
+                autoComplete="off"
+              />
+              {isSearchingAddress && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#f8992f]"></div>
+                </div>
+              )}
+              
+              {/* Address Suggestions Dropdown */}
+              {showSuggestions && addressSuggestions.length > 0 && (
+                <div
+                  ref={suggestionsRef}
+                  className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                >
+                  {addressSuggestions.map((suggestion, index) => (
+                    <button
+                      key={suggestion.fullAddress ?? `suggestion-${index}`}
+                      type="button"
+                      onClick={() => handleAddressSelect(suggestion)}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="font-medium text-gray-900">
+                        {suggestion.fullAddress || suggestion.street || 'Address'}
+                      </div>
+                      {(suggestion.city || suggestion.state || suggestion.postalCode) && (
+                        <div className="text-sm text-gray-500 mt-1">
+                          {[suggestion.city, suggestion.state, suggestion.postalCode]
+                            .filter(Boolean)
+                            .join(', ')}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>

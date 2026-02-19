@@ -9,8 +9,6 @@ export function Analytics() {
     const trackPageView = () => {
       if (typeof window !== 'undefined') {
         // Simple analytics - you can replace with Google Analytics, Mixpanel, etc.
-        console.log('Page view tracked:', window.location.pathname);
-        
         // Example: Send to analytics service
         // gtag('config', 'GA_MEASUREMENT_ID', {
         //   page_path: window.location.pathname,
@@ -20,7 +18,8 @@ export function Analytics() {
 
     // Track CTA clicks
     const trackCTAClick = (ctaName: string) => {
-      console.log('CTA clicked:', ctaName);
+      if (typeof window !== 'undefined')
+        console.log(`CTA ${ctaName} clicked`);
       // Example: Send to analytics service
       // gtag('event', 'cta_click', {
       //   event_category: 'engagement',
@@ -30,7 +29,8 @@ export function Analytics() {
 
     // Track app store downloads
     const trackAppDownload = (store: string) => {
-      console.log('App download tracked:', store);
+      if (typeof window !== 'undefined')
+        console.log(`App download from ${store}`);
       // Example: Send to analytics service
       // gtag('event', 'app_download', {
       //   event_category: 'conversion',
@@ -87,7 +87,7 @@ export function Analytics() {
 export function useAnalytics() {
   const trackEvent = (eventName: string, properties?: Record<string, unknown>) => {
     if (typeof window !== 'undefined') {
-      console.log('Event tracked:', eventName, properties);
+      console.log(`Event: ${eventName}`, properties);
       // Example: Send to analytics service
       // gtag('event', eventName, properties);
     }
@@ -95,7 +95,7 @@ export function useAnalytics() {
 
   const trackPageView = (pageName: string) => {
     if (typeof window !== 'undefined') {
-      console.log('Page view tracked:', pageName);
+      console.log(`Page view: ${pageName}`);
       // Example: Send to analytics service
       // gtag('event', 'page_view', {
       //   page_title: pageName,

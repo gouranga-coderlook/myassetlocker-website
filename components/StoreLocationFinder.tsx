@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setLocationData } from "@/store/slices/cartSlice";
 import type { DeliveryZone } from "@/store/slices/pricingSlice";
@@ -64,6 +64,13 @@ const STORE_LOCATIONS: Store[] = [
     longitude: 73.8567,
     region: "india"
   },
+  {
+    id: "Haldia",
+    name: "Haldia Warehouse",
+    latitude: 26.7271012,
+    longitude: 88.3952861,
+    region: "india"
+  },
   // USA stores
   {
     id: "newyork",
@@ -87,7 +94,7 @@ const REGION_SETTINGS = {
     distanceUnit: "km",
     currency: "₹",
     freeDeliveryThreshold: 1, // km
-    chargePerUnit: 100, // ₹ per km after threshold
+    chargePerUnit: 1, // ₹ per km after threshold
     maxDeliveryDistance: 10 // km
   },
   usa: {
@@ -135,12 +142,6 @@ function kmToMiles(km: number): number {
   return km * 0.621371;
 }
 
-interface NearestStoreInfo {
-  store: Store;
-  distanceKm: number;
-  deliveryCharge: number | "out_of_area";
-}
-
 interface AddressDetails {
   street: string;
   city: string;
@@ -177,9 +178,6 @@ function findNearestStore(userLat: number, userLon: number): { store: Store; dis
   };
 }
 
-/**
- * Calculate delivery charge based on region and distance
- */
 /**
  * Reverse geocoding: Convert coordinates to address details
  * Uses OpenStreetMap Nominatim API (free, no API key required)
@@ -221,7 +219,8 @@ async function reverseGeocode(latitude: number, longitude: number): Promise<Addr
       country: country || 'Not available',
       fullAddress: fullAddress || 'Address not available'
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error('Error in reverse geocoding:', error);
     return null;
   }
 }
@@ -314,83 +313,26 @@ export default function StoreLocationFinder() {
   // Extract deliveryZones from Redux store
   // Handle delivery zones - can be array or { data: [...] } structure
   const deliveryZonesRaw = pricingData?.deliveryZones;
-  const deliveryZones = Array.isArray(deliveryZonesRaw)
-    ? deliveryZonesRaw
-    : (deliveryZonesRaw && typeof deliveryZonesRaw === 'object' && 'data' in deliveryZonesRaw)
-    ? (deliveryZonesRaw.data || [])
-    : [];
+  const deliveryZones = useMemo(() => {
+    if (Array.isArray(deliveryZonesRaw)) return deliveryZonesRaw;
+    if (deliveryZonesRaw && typeof deliveryZonesRaw === 'object' && 'data' in deliveryZonesRaw) {
+      return deliveryZonesRaw.data || [];
+    }
+    return [];
+  }, [deliveryZonesRaw]);
   
   // Track if component is mounted (client-side only)
   const [isMounted, setIsMounted] = useState(false);
-  
-  // State for user location
-  const [userLocation, setUserLocation] = useState<{
-    latitude: number | null;
-    longitude: number | null;
-  }>({
-    latitude: null,
-    longitude: null
-  });
-  
-  // State for address details
-  const [addressDetails, setAddressDetails] = useState<AddressDetails | null>(null);
-  
-  // State for nearest store info
-  const [nearestStoreInfo, setNearestStoreInfo] = useState<NearestStoreInfo | null>(null);
-  
-  // State for matched delivery zone (for USA)
-  const [matchedZone, setMatchedZone] = useState<DeliveryZone | null>(null);
-  
-  // State for loading and error
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   
   // Set mounted state on client-side only
   useEffect(() => {
     setIsMounted(true);
   }, []);
   
-  // Load saved location data from Redux on mount
-  useEffect(() => {
-    if (!isMounted) return;
-    
-    if (savedLocationData) {
-      // Use saved location data from Redux
-      setUserLocation({
-        latitude: savedLocationData.latitude,
-        longitude: savedLocationData.longitude
-      });
-      
-      if (savedLocationData.addressDetails) {
-        setAddressDetails(savedLocationData.addressDetails);
-      }
-      
-      if (savedLocationData.nearestStore && savedLocationData.distanceKm !== null && savedLocationData.deliveryCharge !== null) {
-        setNearestStoreInfo({
-          store: savedLocationData.nearestStore,
-          distanceKm: savedLocationData.distanceKm,
-          deliveryCharge: savedLocationData.deliveryCharge
-        });
-      }
-      
-      if (savedLocationData.matchedZone) {
-        setMatchedZone(savedLocationData.matchedZone);
-      }
-      
-      setLoading(false);
-      setError(null);
-    }
-  }, [isMounted, savedLocationData]);
-  
-  // Function to process location (used by both geolocation and manual input)
-  const processLocation = async (latitude: number, longitude: number) => {
-    setUserLocation({ latitude, longitude });
-    
+  // Process location and dispatch to Redux (runs when geolocation succeeds)
+  const processLocation = useCallback(async (latitude: number, longitude: number) => {
     // Get address details using reverse geocoding
     const address = await reverseGeocode(latitude, longitude);
-    if (address) {
-      setAddressDetails(address);
-    }
     
     // Find nearest store
     const { store, distanceKm } = findNearestStore(latitude, longitude);
@@ -401,10 +343,7 @@ export default function StoreLocationFinder() {
       if (deliveryZones.length > 0) {
         const distanceInMiles = kmToMiles(distanceKm);
         zone = findDeliveryZone(distanceInMiles, deliveryZones);
-        setMatchedZone(zone);
       }
-    } else {
-      setMatchedZone(null);
     }
     
     // Calculate delivery charge (USA uses ONLY delivery zones from pricing slice)
@@ -413,12 +352,6 @@ export default function StoreLocationFinder() {
       store.region,
       deliveryZones
     );
-    
-    setNearestStoreInfo({
-      store,
-      distanceKm,
-      deliveryCharge
-    });
     
     // Store location data in Redux cart slice
     dispatch(setLocationData({
@@ -430,10 +363,7 @@ export default function StoreLocationFinder() {
       deliveryCharge,
       matchedZone: zone || null
     }));
-    
-    setLoading(false);
-    setError(null);
-  };
+  }, [dispatch, deliveryZones]);
   
   // Get user's geolocation on component mount (client-side only)
   // Only request if location data is not already saved in Redux
@@ -448,8 +378,6 @@ export default function StoreLocationFinder() {
     
     // Check if geolocation is supported
     if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser.");
-      setLoading(false);
       return;
     }
     
@@ -460,10 +388,8 @@ export default function StoreLocationFinder() {
         const { latitude, longitude } = position.coords;
         await processLocation(latitude, longitude);
       },
-      // Error callback
-      (err) => {
-        setLoading(false);
-      },
+      // Error callback (silent - no UI to show)
+      () => {},
       // Options
       {
         enableHighAccuracy: true,
@@ -471,7 +397,7 @@ export default function StoreLocationFinder() {
         maximumAge: 0
       }
     );
-  }, [isMounted, deliveryZones, savedLocationData]);
+  }, [isMounted, savedLocationData, processLocation]);
   
   // Component runs silently in background - no UI displayed
   // Location data is processed and saved to Redux

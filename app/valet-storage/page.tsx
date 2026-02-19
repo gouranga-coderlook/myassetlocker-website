@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Hero from "@/components/Hero";
 import AppShowcase from "@/components/AppShowcase";
 
@@ -11,8 +12,8 @@ export default function ValetStorage() {
         // bodyText={`Convenient pickup, secure storage, and delivery service for your valuable items. Climate-controlled facilities ensure your belongings are safe and accessible.`}
         ctaButton={{
           enabled: true,
-          text: "Book Now",
-          href: "/pricing",
+          text: "Request Pickup",
+          href: "/valet-storage/pickup",
         }}
         appStoreButtons={false}
       />
@@ -377,6 +378,78 @@ export default function ValetStorage() {
 
       {/* CTA Section */}
       <AppShowcase />
+
+      {/* Quick Actions */}
+      <section className="py-20">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
+                Get Started
+              </h2>
+              <p className="text-base text-text-secondary max-w-2xl mx-auto">
+                Create a pickup request or manage your existing orders
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <a
+                href="/valet-storage/pickup"
+                className="card-modern p-8 hover-lift text-center group"
+              >
+                <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-glow group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-text-primary mb-2">Request Pickup</h3>
+                <p className="text-sm text-text-secondary mb-4">
+                  Schedule a pickup for your items. We&apos;ll collect them from your location.
+                </p>
+                <span className="text-primary-600 font-medium group-hover:text-primary-700">
+                  Create Request →
+                </span>
+              </a>
+
+              <a
+                href="/valet-storage/delivery"
+                className="card-modern p-8 hover-lift text-center group"
+              >
+                <div className="w-16 h-16 gradient-secondary rounded-full flex items-center justify-center mx-auto mb-4 shadow-glow-secondary group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-text-primary mb-2">Request Delivery</h3>
+                <p className="text-sm text-text-secondary mb-4">
+                  Request delivery for your stored items back to your location.
+                </p>
+                <span className="text-secondary-600 font-medium group-hover:text-secondary-700">
+                  Request Delivery →
+                </span>
+              </a>
+
+              <Link
+                href="/valet-storage/orders"
+                className="card-modern p-8 hover-lift text-center group"
+              >
+                <div className="w-16 h-16 gradient-success rounded-full flex items-center justify-center mx-auto mb-4 shadow-glow group-hover:scale-110 transition-transform">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-text-primary mb-2">My Orders</h3>
+                <p className="text-sm text-text-secondary mb-4">
+                  Track the status of your pickup and delivery requests.
+                </p>
+                <span className="text-success-600 font-medium group-hover:text-success-700">
+                  View Orders →
+                </span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

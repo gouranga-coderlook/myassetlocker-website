@@ -8,7 +8,7 @@ export async function getServerPricingData(): Promise<Pricing | null> {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/public/pricing`, {
+    const response = await fetch(`${API_BASE_URL}/public/pricing`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -29,7 +29,8 @@ export async function getServerPricingData(): Promise<Pricing | null> {
     };
     
     return data;
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error("Error fetching server pricing data:", error);
     return null;
   }
 }

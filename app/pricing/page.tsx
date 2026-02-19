@@ -1,5 +1,6 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Hero from "@/components/Hero";
 import AppShowcase from "@/components/AppShowcase";
@@ -10,55 +11,65 @@ import AddonsStep from "@/components/booking-steps/AddonsStep";
 import DeliveryInformationStep from "@/components/booking-steps/DeliveryInformationStep";
 import SummaryStep from "@/components/booking-steps/SummaryStep";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import type { Plan, Bundle } from "@/store/slices/pricingSlice";
+import { useAuth } from "@/lib/hooks/useAuth";
+import type { Plan, Bundle, Addon, ProtectionPlan } from "@/store/slices/pricingSlice";
 import {
-  setPlan,
-  setMonths,
-  setBins,
-  setBundle,
-  toggleAddon,
-  setClimateControl,
-  setProtectionPlan,
-  setDeliveryInfo,
-  setPricingBreakdown,
+  initializeCart,
 } from "@/store/slices/cartSlice";
+import type { BookingCart } from "@/store/slices/cartSlice";
+import { fetchProfileIfNeeded } from "@/store/slices/profileSlice";
+import { transformCartDtoToBookingCart, transformBookingCartToAddCartItemDto, addCartItem } from "@/lib/api/cartService";
+
+/** Set to true to allow clicking step indicators to jump between steps; false for sequential-only navigation. */
+const ALLOW_STEP_CLICK_NAVIGATION = false;
 
 export default function PricingPage() {
   const dispatch = useAppDispatch();
-  
+  const router = useRouter();
+  const { isAuthenticated, authHydrated, openAuthPopup } = useAuth();
+  const pendingBookingRef = useRef(false);
+  const pendingStepProgressionRef = useRef(false);
+  const [isCompletingBooking, setIsCompletingBooking] = useState(false);
+  const [isSavingCart, setIsSavingCart] = useState(false);
+
   // Get Redux pricing data (raw API response)
   const pricingData = useAppSelector((state) => state.pricing.data);
-  
-  // Get cart state from Redux
+  // Get loading and error state from Redux
+  const loading = useAppSelector((state) => state.pricing.loading);
+  const error = useAppSelector((state) => state.pricing.error);
+  // Get cart state from Redux (only used in Summary step after API call)
   const cart = useAppSelector((state) => state.cart);
+  const locationData = useAppSelector((state) => state.cart.locationData);
+  const profile = useAppSelector((state) => state.profile.profileData);
+  const hasInitializedContactFromProfile = useRef(false);
 
-  // Booking workflow state (synced with cart)
+  // Booking workflow state - use local state for Steps 1-4, Redux only populated after Step 4 API call
   const [currentStep, setCurrentStep] = useState(1);
-  const plan = cart.plan; // Now a Plan object with full details
-  const selectedMonths = cart.durationBins.months;
-  const selectedBins = cart.durationBins.bins;
-  const selectedBundle = cart.bundles; // Now a Bundle object or null
-  const selectedAddons = cart.addons; // Now an array of Addon objects
-  const climateControl = cart.climateControl;
-  const protectionPlan = cart.protectionPlan; // Now a ProtectionPlan object or null
-  const fullName = cart.deliveryInfo.fullName;
-  const email = cart.deliveryInfo.email;
-  const phone = cart.deliveryInfo.phone;
-  const deliveryAddress = cart.deliveryInfo.deliveryAddress;
-  const city = cart.deliveryInfo.city;
-  const state = cart.deliveryInfo.state;
-  const zipCode = cart.deliveryInfo.zipCode;
-  const deliveryNotes = cart.deliveryInfo.deliveryNotes;
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [selectedMonths, setSelectedMonths] = useState<number | null>(null);
+  const [selectedBins, setSelectedBins] = useState<number>(0);
+  const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
+  const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
+  const [climateControl, setClimateControl] = useState<boolean>(false);
+  const [protectionPlan, setProtectionPlan] = useState<ProtectionPlan | null>(null);
+  const [fullName, setFullName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [deliveryAddress, setDeliveryAddress] = useState<string>("");
+  const [city, setCity] = useState<string>("");
+  const [state, setState] = useState<string>("");
+  const [zipCode, setZipCode] = useState<string>("");
+  const [deliveryNotes, setDeliveryNotes] = useState<string>("");
 
   // Helper functions
   const prepaidPlan = useMemo(() => {
-    return pricingData?.plans.find((p) => 
+    return pricingData?.plans.find((p) =>
       p.plan_name.toLowerCase().includes("prepaid")
     );
   }, [pricingData]);
-  
+
   const monthToMonthPlan = useMemo(() => {
-    return pricingData?.plans.find((p) => 
+    return pricingData?.plans.find((p) =>
       p.plan_name.toLowerCase().includes("month")
     );
   }, [pricingData]);
@@ -66,24 +77,49 @@ export default function PricingPage() {
   // Helper to get bundle by key
   const getBundleByKey = (key: string): Bundle | undefined => {
     if (!pricingData?.bundles) return undefined;
-    const bundle = pricingData.bundles.find((b) => 
-      key === "summer" ? b.bundle_name.toLowerCase().includes("summer") :
-      key === "ski" ? b.bundle_name.toLowerCase().includes("ski") :
-      b.id === key
+    const bundle = pricingData.bundles.find((b) =>
+      key === "summer"
+        ? b.bundle_name.toLowerCase().includes("summer")
+        : key === "ski"
+        ? b.bundle_name.toLowerCase().includes("ski")
+        : b.id === key
     );
     return bundle;
   };
 
+
   // Set prepaid plan as default when pricing data loads
   useEffect(() => {
     if (pricingData && !plan && prepaidPlan) {
-      dispatch(setPlan(prepaidPlan));
+      setPlan(prepaidPlan);
     }
-  }, [pricingData, plan, prepaidPlan, dispatch]);
+  }, [pricingData, plan, prepaidPlan]);
 
-  // Wrapper functions that update both local state and Redux cart
+  // Fetch profile when authenticated (after auth hydrated) so delivery step can pre-fill from profile
+  useEffect(() => {
+    if (authHydrated && isAuthenticated) {
+      dispatch(fetchProfileIfNeeded());
+    }
+  }, [authHydrated, isAuthenticated, dispatch]);
+
+  // Reset pre-fill flag when profile is cleared (e.g. logout)
+  useEffect(() => {
+    if (!profile) hasInitializedContactFromProfile.current = false;
+  }, [profile]);
+
+  // Pre-fill contact fields from profile store once when profile is available
+  useEffect(() => {
+    if (!profile || hasInitializedContactFromProfile.current) return;
+    hasInitializedContactFromProfile.current = true;
+    if (profile.fullName) setFullName(profile.fullName);
+    if (profile.email) setEmail(profile.email);
+    if (profile.phoneNumber) setPhone(profile.phoneNumber);
+    else if (profile.mobilePhoneNumber) setPhone(profile.mobilePhoneNumber);
+  }, [profile]);
+
+  // Handler functions - update local state only (no Redux updates)
   const handleSetPlan = (newPlan: Plan | null) => {
-    dispatch(setPlan(newPlan));
+    setPlan(newPlan);
     // Reset custom plan flag when plan changes
     if (newPlan) {
       setIsCustomPlanSelected(false);
@@ -91,68 +127,74 @@ export default function PricingPage() {
   };
 
   const handleSetSelectedMonths = (months: number | null) => {
-    dispatch(setMonths(months));
+    setSelectedMonths(months);
   };
 
   const handleSetSelectedBins = (bins: number) => {
-    dispatch(setBins(bins));
+    setSelectedBins(bins);
   };
 
-  const handleToggleAddon = (addonKey: string) => {
-    // Find the addon object from pricing data
-    const addon = pricingData?.addons.find(a => 
-      a.name.toLowerCase().replace(/\s+/g, "") === addonKey
+  const handleToggleAddon = (addon: Addon) => {
+    // Toggle addon in local state
+    const index = selectedAddons.findIndex(a => 
+      (a.id && addon.id && a.id === addon.id) ||
+      (!a.id && !addon.id && a.name === addon.name)
     );
-    if (addon) {
-      dispatch(toggleAddon(addon));
+    if (index === -1) {
+      setSelectedAddons([...selectedAddons, addon]);
+    } else {
+      setSelectedAddons(selectedAddons.filter((_, i) => i !== index));
     }
   };
 
   const handleSetClimateControl = (value: boolean) => {
-    dispatch(setClimateControl(value));
+    setClimateControl(value);
   };
 
   const handleSetProtectionPlan = (planKey: string) => {
     // Find the protection plan object from pricing data
-    const planData = pricingData?.protection_plans.find(p => 
-      planKey === "basic" ? p.name.toLowerCase().includes("basic") :
-      planKey === "enhanced" ? p.name.toLowerCase().includes("enhanced") :
-      planKey === "premium" ? p.name.toLowerCase().includes("premium") :
-      p.name.toLowerCase().includes(planKey)
+    const planData = pricingData?.protection_plans.find((p) =>
+      planKey === "basic"
+        ? p.name.toLowerCase().includes("basic")
+        : planKey === "enhanced"
+        ? p.name.toLowerCase().includes("enhanced")
+        : planKey === "premium"
+        ? p.name.toLowerCase().includes("premium")
+        : p.name.toLowerCase().includes(planKey)
     );
-    dispatch(setProtectionPlan(planData || null));
+    setProtectionPlan(planData || null);
   };
 
   const handleSetFullName = (name: string) => {
-    dispatch(setDeliveryInfo({ fullName: name }));
+    setFullName(name);
   };
 
-  const handleSetEmail = (email: string) => {
-    dispatch(setDeliveryInfo({ email }));
+  const handleSetEmail = (emailValue: string) => {
+    setEmail(emailValue);
   };
 
-  const handleSetPhone = (phone: string) => {
-    dispatch(setDeliveryInfo({ phone }));
+  const handleSetPhone = (phoneValue: string) => {
+    setPhone(phoneValue);
   };
 
   const handleSetDeliveryAddress = (address: string) => {
-    dispatch(setDeliveryInfo({ deliveryAddress: address }));
+    setDeliveryAddress(address);
   };
 
-  const handleSetCity = (city: string) => {
-    dispatch(setDeliveryInfo({ city }));
+  const handleSetCity = (cityValue: string) => {
+    setCity(cityValue);
   };
 
-  const handleSetState = (state: string) => {
-    dispatch(setDeliveryInfo({ state }));
+  const handleSetState = (stateValue: string) => {
+    setState(stateValue);
   };
 
-  const handleSetZipCode = (zipCode: string) => {
-    dispatch(setDeliveryInfo({ zipCode }));
+  const handleSetZipCode = (zipCodeValue: string) => {
+    setZipCode(zipCodeValue);
   };
 
   const handleSetDeliveryNotes = (notes: string) => {
-    dispatch(setDeliveryInfo({ deliveryNotes: notes }));
+    setDeliveryNotes(notes);
   };
 
   const getDeliveryFeePerItem = () => {
@@ -160,7 +202,7 @@ export default function PricingPage() {
     if (selectedAddons.length > 0 && selectedAddons[0]) {
       return selectedAddons[0].reDeliveryFee;
     }
-    
+
     // Default delivery fee
     const isMonthly = plan?.plan_name.toLowerCase().includes("month");
     if (isMonthly || !selectedMonths) return 39;
@@ -179,7 +221,7 @@ export default function PricingPage() {
     if (bundle) {
       // Bundle selected - set bundle data but don't navigate yet
       // User must also select a plan before proceeding
-      dispatch(setBundle(bundle));
+      setSelectedBundle(bundle);
       handleSetSelectedMonths(bundle.months);
       // Extract bins from bundle description or use defaults
       const bins = bundle.bundle_name.toLowerCase().includes("ski") ? 2 : 5;
@@ -187,7 +229,7 @@ export default function PricingPage() {
       setIsCustomPlanSelected(false);
     } else if (type === "custom") {
       // Custom plan selected - clear bundle and reset duration/bins
-      dispatch(setBundle(null));
+      setSelectedBundle(null);
       handleSetSelectedMonths(null); // Clear duration
       handleSetSelectedBins(0); // Clear bins
       setIsCustomPlanSelected(true);
@@ -219,31 +261,37 @@ export default function PricingPage() {
 
   const calculateBookingTotal = () => {
     if (!pricingData) return 0;
-    
+
     let total = 0;
 
     // Check if a bundle is selected
     if (selectedBundle) {
       let bundlePrice = selectedBundle.price;
-      
+
       // Apply plan discount if plan is selected and has discount
       if (plan && plan.hasDiscount && plan.discount_value > 0) {
         if (plan.discount_type === "percentage") {
           // Apply percentage discount
           const discountAmount = (bundlePrice * plan.discount_value) / 100;
           bundlePrice = bundlePrice - discountAmount;
-        } else if (plan.discount_type === "fixed" || plan.discount_type === "amount") {
+        } else if (
+          plan.discount_type === "fixed" ||
+          plan.discount_type === "amount"
+        ) {
           // Apply fixed amount discount
           bundlePrice = Math.max(0, bundlePrice - plan.discount_value);
         }
       }
-      
+
       total = bundlePrice;
 
       // Climate control (+20% on storage cost)
       if (climateControl && selectedBins > 0 && selectedMonths) {
-        const storageCost = selectedBins * selectedMonths * (prepaidPlan?.perBinPrice || 7.5);
-        const climateAddon = pricingData.addons.find(a => a.name === "Climate-Controlled Storage");
+        const storageCost =
+          selectedBins * selectedMonths * (prepaidPlan?.perBinPrice || 7.5);
+        const climateAddon = pricingData.addons.find(
+          (a) => a.name === "Climate-Controlled Storage"
+        );
         if (climateAddon && climateAddon.chargeType === "percent") {
           total += storageCost * (climateAddon.amount / 100);
         }
@@ -289,11 +337,14 @@ export default function PricingPage() {
 
     // Climate control
     if (climateControl && (selectedBins > 0 || selectedAddons.length > 0)) {
-      const climateAddon = pricingData.addons.find(a => a.name === "Climate-Controlled Storage");
+      const climateAddon = pricingData.addons.find(
+        (a) => a.name === "Climate-Controlled Storage"
+      );
       if (climateAddon) {
-        const storageCost = selectedBins > 0 && selectedMonths
-          ? selectedBins * selectedMonths * (prepaidPlan?.perBinPrice || 7.5)
-          : 0;
+        const storageCost =
+          selectedBins > 0 && selectedMonths
+            ? selectedBins * selectedMonths * (prepaidPlan?.perBinPrice || 7.5)
+            : 0;
         if (climateAddon.chargeType === "percent") {
           total += storageCost * (climateAddon.amount / 100);
         } else {
@@ -309,11 +360,11 @@ export default function PricingPage() {
     }
 
     // Add delivery zone/charge
-    if (cart.locationData?.matchedZone) {
-      total += cart.locationData.matchedZone.price;
-    } else if (cart.locationData?.deliveryCharge && typeof cart.locationData.deliveryCharge === 'number') {
-      const region = cart.locationData.nearestStore?.region?.toLowerCase();
-      const charge = cart.locationData.deliveryCharge;
+    if (locationData?.matchedZone) {
+      total += locationData.matchedZone.price;
+    } else if (locationData?.deliveryCharge && typeof locationData.deliveryCharge === 'number') {
+      const region = locationData.nearestStore?.region?.toLowerCase();
+      const charge = locationData.deliveryCharge;
       // Convert rupees to USD if region is India (1 USD ≈ 83 INR)
       total += region === 'india' ? charge / 83 : charge;
     }
@@ -321,9 +372,19 @@ export default function PricingPage() {
     return total;
   };
 
-  // Calculate pricing breakdown and update cart slice
-  useEffect(() => {
-    if (!pricingData) return;
+  // Calculate pricing breakdown from local state
+  const calculatePricingBreakdown = () => {
+    if (!pricingData) {
+      return {
+        baseStorageCost: 0,
+        redeliveryFee: 0,
+        climateControlCost: 0,
+        addonsCost: 0,
+        addonsDeliveryCost: 0,
+        protectionPlanCost: 0,
+        savings: 0,
+      };
+    }
 
     let baseStorageCost = 0;
     let redeliveryFee = 0;
@@ -336,19 +397,22 @@ export default function PricingPage() {
     // If bundle is selected
     if (selectedBundle) {
       let bundlePrice = selectedBundle.price || 0;
-      
+
       // Apply plan discount if plan is selected and has discount
       if (plan && plan.hasDiscount && plan.discount_value > 0) {
         if (plan.discount_type === "percentage") {
           const discountAmount = (bundlePrice * plan.discount_value) / 100;
           bundlePrice = bundlePrice - discountAmount;
           savings = discountAmount;
-        } else if (plan.discount_type === "fixed" || plan.discount_type === "amount") {
+        } else if (
+          plan.discount_type === "fixed" ||
+          plan.discount_type === "amount"
+        ) {
           bundlePrice = Math.max(0, bundlePrice - plan.discount_value);
           savings = plan.discount_value;
         }
       }
-      
+
       baseStorageCost = bundlePrice;
       redeliveryFee = 0; // Bundles don't have redelivery fees
     } else if (selectedBins > 0 && selectedMonths && plan) {
@@ -361,12 +425,13 @@ export default function PricingPage() {
         baseStorageCost = pricing.base;
         redeliveryFee = pricing.deliveryFee;
 
-        // Calculate savings (prepaid vs monthly)
+        // Calculate savings (prepaid vs monthly) - this is the difference between monthly and prepaid plans
         const isPrepaid = plan.plan_name.toLowerCase().includes("prepaid");
         if (isPrepaid && monthToMonthPlan) {
           const monthlyPricing = monthToMonthPlan.pricing[monthsStr]?.[binsStr];
           if (monthlyPricing) {
-            const monthlyTotal = monthlyPricing.base + monthlyPricing.deliveryFee;
+            const monthlyTotal =
+              monthlyPricing.base + monthlyPricing.deliveryFee;
             const prepaidTotal = pricing.base + pricing.deliveryFee;
             savings = Math.max(0, monthlyTotal - prepaidTotal);
           }
@@ -376,11 +441,14 @@ export default function PricingPage() {
 
     // Climate control cost
     if (climateControl && (selectedBins > 0 || selectedAddons.length > 0)) {
-      const climateAddon = pricingData.addons.find(a => a.name === "Climate-Controlled Storage");
+      const climateAddon = pricingData.addons.find(
+        (a) => a.name === "Climate-Controlled Storage"
+      );
       if (climateAddon) {
-        const storageCost = selectedBins > 0 && selectedMonths
-          ? selectedBins * selectedMonths * (prepaidPlan?.perBinPrice || 7.5)
-          : 0;
+        const storageCost =
+          selectedBins > 0 && selectedMonths
+            ? selectedBins * selectedMonths * (prepaidPlan?.perBinPrice || 7.5)
+            : 0;
         if (climateAddon.chargeType === "percent") {
           climateControlCost = storageCost * (climateAddon.amount / 100);
         } else {
@@ -393,9 +461,35 @@ export default function PricingPage() {
     // Add-ons cost
     selectedAddons.forEach((addon) => {
       if (addon.recurrence === "monthly" && selectedMonths) {
-        addonsCost += addon.amount * selectedMonths;
+        if (addon.chargeType === "percent") {
+          // For percent-based monthly addons: calculate percentage of monthly storage cost
+          // Based on API response: Bicycle 12% should result in $72 for 6 months ($12/month)
+          // Current calculation: $75 × 12% × 6 = $54 (doesn't match API's $72)
+          // 
+          // Possible server calculation methods:
+          // 1. Percentage of total storage cost, that amount is monthly: $450 × 12% = $54/month (too high)
+          // 2. Percentage of monthly storage with different base or multiplier
+          // 3. Server may recalculate differently
+          //
+          // Using: percentage of monthly storage cost × months (standard calculation)
+          // Server may adjust this, but we send our calculated value
+          const monthlyStorageCost = selectedBins > 0 && plan
+            ? selectedBins * (plan.perBinPrice || prepaidPlan?.perBinPrice || 7.5)
+            : 0;
+          const monthlyAddonCost = monthlyStorageCost * (addon.amount / 100);
+          addonsCost += monthlyAddonCost * selectedMonths;
+        } else {
+          // Fixed amount addons
+          addonsCost += addon.amount * selectedMonths;
+        }
       } else if (addon.recurrence === "one_time") {
-        addonsCost += addon.amount;
+        if (addon.chargeType === "percent") {
+          // For one-time percent addons, calculate percentage of total storage cost
+          const totalStorageCost = baseStorageCost;
+          addonsCost += totalStorageCost * (addon.amount / 100);
+        } else {
+          addonsCost += addon.amount;
+        }
       }
       addonsDeliveryCost += addon.reDeliveryFee;
     });
@@ -405,12 +499,7 @@ export default function PricingPage() {
       protectionPlanCost = protectionPlan.price * selectedMonths;
     }
 
-    // Calculate total
-    const total = baseStorageCost + redeliveryFee + climateControlCost + addonsCost + addonsDeliveryCost + protectionPlanCost;
-
-    // Update cart slice with pricing breakdown
-    dispatch(setPricingBreakdown({
-      total,
+    return {
       baseStorageCost,
       redeliveryFee,
       climateControlCost,
@@ -418,24 +507,276 @@ export default function PricingPage() {
       addonsDeliveryCost,
       protectionPlanCost,
       savings,
-    }));
-  }, [
-    pricingData,
-    plan,
-    selectedBundle,
-    selectedBins,
-    selectedMonths,
-    selectedAddons,
-    climateControl,
-    protectionPlan,
-    prepaidPlan,
-    monthToMonthPlan,
-    dispatch,
-  ]);
+    };
+  };
 
-  // Get loading and error state from Redux
-  const loading = useAppSelector((state) => state.pricing.loading);
-  const error = useAppSelector((state) => state.pricing.error);
+  // Note: No Redux updates during booking steps - only populate Redux after Step 4 API call
+
+  // Extract cart save logic to be reusable after authentication
+  const proceedWithCartSave = async () => {
+    if (!pricingData) {
+      return;
+    }
+
+    setIsSavingCart(true);
+    try {
+      // Calculate pricing breakdown from local state
+      const pricingBreakdown = calculatePricingBreakdown();
+      
+      // Calculate total including delivery charge
+      let calculatedTotal = 
+        pricingBreakdown.baseStorageCost +
+        pricingBreakdown.redeliveryFee +
+        pricingBreakdown.climateControlCost +
+        pricingBreakdown.addonsCost +
+        pricingBreakdown.addonsDeliveryCost +
+        pricingBreakdown.protectionPlanCost;
+
+      // Add delivery zone/charge
+      if (locationData?.matchedZone) {
+        calculatedTotal += locationData.matchedZone.price;
+      } else if (locationData?.deliveryCharge && typeof locationData.deliveryCharge === 'number') {
+        const charge = locationData.deliveryCharge;
+        // Convert rupees to USD if region is India (1 USD ≈ 83 INR)
+        calculatedTotal += charge;
+      } else if (locationData?.deliveryCharge === "out_of_area") {
+        toast("No storage zone found for your location", {
+          icon: "ℹ️",
+          duration: 4000,
+          style: {
+            background: "#f8992f",
+            color: "#fff",
+          },
+        });
+        return;
+      }
+
+      // Build cart payload from local state with calculated pricing
+      const localCart: BookingCart = {
+        total: calculatedTotal,
+        baseStorageCost: pricingBreakdown.baseStorageCost,
+        redeliveryFee: pricingBreakdown.redeliveryFee,
+        climateControlCost: pricingBreakdown.climateControlCost,
+        addonsCost: pricingBreakdown.addonsCost,
+        addonsDeliveryCost: pricingBreakdown.addonsDeliveryCost,
+        protectionPlanCost: pricingBreakdown.protectionPlanCost,
+        savings: pricingBreakdown.savings,
+        plan,
+        bundles: selectedBundle,
+        addons: selectedAddons,
+        protectionPlan,
+        durationBins: {
+          months: selectedMonths,
+          bins: selectedBins,
+        },
+        climateControl,
+        deliveryInfo: {
+          fullName,
+          email,
+          phone,
+          deliveryAddress,
+          city,
+          state,
+          zipCode,
+          deliveryNotes,
+        },
+        locationData,
+        zoneDeliveryCharges: locationData?.deliveryCharge as number | null,
+        couponCode: null,
+      };
+
+      // Transform local cart to API payload format
+      const cartPayload = transformBookingCartToAddCartItemDto(localCart);
+      
+      // Call API to add/update cart item
+      const cartDto = await addCartItem(cartPayload);
+
+      // Transform API response back to BookingCart format
+      const updatedCart = transformCartDtoToBookingCart(
+        cartDto,
+        pricingData.plans || [],
+        pricingData.bundles || [],
+        pricingData.addons || [],
+        pricingData.protection_plans || []
+      );
+
+      // Preserve locationData from local state (not returned by API)
+      updatedCart.locationData = locationData;
+      // Preserve deliveryNotes (not in API response)
+      updatedCart.deliveryInfo.deliveryNotes = deliveryNotes;
+      
+      // Note: updatedCart.cartItemId will be set from the API response (the newly added item)
+
+      // Update Redux store with server-calculated cart data (only now, after Step 4)
+      dispatch(initializeCart(updatedCart));
+      
+      toast.success("Cart saved successfully!");
+      
+      // Proceed to next step (Summary)
+      setCurrentStep((prev) => prev + 1);
+    } catch (error: unknown) {
+      const errorMessage = 
+        (error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (error as { message?: string })?.message || 
+        "Failed to save cart";
+      toast.error(errorMessage);
+      // Don't proceed to next step if API call fails
+    } finally {
+      setIsSavingCart(false);
+    }
+  };
+
+  const validateStepAndNext = async () => {
+    // Step 1 validation: Must select a plan AND (bundle OR custom plan)
+    if (currentStep === 1) {
+      if (!plan) {
+        toast.error("Please select a Payment Plan before proceeding.");
+        return;
+      }
+      if (!selectedBundle && !isCustomPlanSelected) {
+        toast.error(
+          "Please choose a Bundle Offer or Custom Plan before proceeding."
+        );
+        return;
+      }
+      // If bundle is selected, skip to Delivery Info (step 4)
+      if (selectedBundle) {
+        setCurrentStep(4);
+        return;
+      }
+      // If custom plan is selected, go to Duration & Bins (step 2)
+      if (isCustomPlanSelected) {
+        setCurrentStep(2);
+        return;
+      }
+    }
+    // Step 2 validation: Must select duration (only for custom plan, not bundles)
+    // Bins can be 0 (for bulky items only), but duration is required
+    if (currentStep === 2 && !selectedBundle) {
+      if (selectedMonths === null || selectedMonths === undefined) {
+        toast.error("Please select a storage duration before proceeding.");
+        return;
+      }
+      // Duration is selected, allow proceeding (bins can be 0 for bulky items)
+    }
+    // Step 4 validation: Must fill all required delivery information fields
+    if (currentStep === 4) {
+      if (!fullName || fullName.trim() === "") {
+        toast.error("Please enter your full name.");
+        return;
+      }
+      if (!email || email.trim() === "") {
+        toast.error("Please enter your email address.");
+        return;
+      }
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        toast.error("Please enter a valid email address.");
+        return;
+      }
+      if (!phone || phone.trim() === "") {
+        toast.error("Please enter your phone number.");
+        return;
+      }
+      if (!deliveryAddress || deliveryAddress.trim() === "") {
+        toast.error("Please enter your delivery address.");
+        return;
+      }
+      if (!city || city.trim() === "") {
+        toast.error("Please enter your city.");
+        return;
+      }
+      if (!state || state.trim() === "") {
+        toast.error("Please enter your state.");
+        return;
+      }
+      if (!zipCode || zipCode.trim() === "") {
+        toast.error("Please enter your ZIP code.");
+        return;
+      }
+
+      // Check authentication before proceeding to API call
+      if (!isAuthenticated) {
+        // Set flag to continue after login
+        pendingStepProgressionRef.current = true;
+        // Open login popup
+        openAuthPopup();
+        toast("Please sign in to continue", {
+          icon: "ℹ️",
+          duration: 4000,
+        });
+        return;
+      }
+
+      // After validation passes, call Add Item to Cart API
+      // This will save the cart and get server-calculated pricing
+      await proceedWithCartSave();
+      return; // Don't proceed to next step here, proceedWithCartSave handles it
+    }
+    // Default: go to next step
+    setCurrentStep((prev) => prev + 1);
+  };
+
+  // Redirect to payment after successful login (for complete booking)
+  useEffect(() => {
+    if (isAuthenticated && pendingBookingRef.current) {
+      pendingBookingRef.current = false;
+      // User just logged in, redirect to payment page
+      router.push("/payment");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
+  // Continue to next step after successful login (for step progression)
+  useEffect(() => {
+    if (isAuthenticated && pendingStepProgressionRef.current && currentStep === 4) {
+      pendingStepProgressionRef.current = false;
+      // User just logged in, continue with the API call and step progression
+      // We'll use a small delay to ensure auth state is fully updated
+      setTimeout(() => {
+        proceedWithCartSave();
+      }, 100);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, currentStep]);
+
+  const onCompleteBooking = async () => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      // Show login popup
+      pendingBookingRef.current = true;
+      openAuthPopup();
+      toast("Please sign in to complete your booking", {
+        icon: "ℹ️",
+        duration: 4000,
+      });
+      return;
+    }
+
+    // Check if cart is saved (should be saved after Step 4)
+    if (!cart.cartId) {
+      toast.error("Please complete all steps before booking");
+      return;
+    }
+
+    try {
+      setIsCompletingBooking(true);
+
+      // Redirect to payment page with cart ID and newly added cartItemId
+      // The cartItemId from Redux cart is the newly added item from the current booking flow
+      const paymentUrl = cart.cartItemId 
+        ? `/payment/${cart.cartId}?cartItemId=${cart.cartItemId}`
+        : `/payment/${cart.cartId}`;
+      router.push(paymentUrl);
+    } catch (error: unknown) {
+      const errorMessage = 
+        (error as { message?: string })?.message || 
+        "Failed to complete booking";
+      toast.error(errorMessage);
+      setIsCompletingBooking(false);
+    }
+  };
 
   // Show loading or error state if pricing data is not available
   if (loading) {
@@ -454,7 +795,9 @@ export default function PricingPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-2">Failed to load pricing data</p>
-          <p className="text-gray-600">{error || "Pricing data is not available"}</p>
+          <p className="text-gray-600">
+            {error || "Pricing data is not available"}
+          </p>
         </div>
       </div>
     );
@@ -470,11 +813,10 @@ export default function PricingPage() {
         ctaButton={{
           enabled: false,
         }}
+        height="compact"
       />
       {/* Store Location Finder */}
-      <div className="max-w-5xl mx-auto px-4 py-6">
         <StoreLocationFinder />
-      </div>
       {/* Valet Storage Booking Workflow */}
       <section className="py-20 px-4 relative bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
         <div className="max-w-4xl mx-auto text-center mb-12">
@@ -508,8 +850,11 @@ export default function PricingPage() {
                   }`}
                 >
                   <div
-                    className="flex flex-col items-center shrink-0 cursor-pointer hover:scale-105 transition-all duration-300"
+                    className={`flex flex-col items-center shrink-0 transition-all duration-300 ${
+                      ALLOW_STEP_CLICK_NAVIGATION ? "cursor-pointer hover:scale-105" : "cursor-default"
+                    }`}
                     onClick={() => {
+                      if (!ALLOW_STEP_CLICK_NAVIGATION) return;
                       // Handle step navigation with bundle logic
                       if (selectedBundle) {
                         // If bundle is selected, skip steps 2 and 3
@@ -517,7 +862,6 @@ export default function PricingPage() {
                           return; // Disable clicking on skipped steps
                         }
                       }
-                      // Regular flow - allow navigation to any step
                       setCurrentStep(num);
                     }}
                   >
@@ -574,7 +918,19 @@ export default function PricingPage() {
               <StoragePlanStep
                 plan={plan}
                 setPlan={handleSetPlan}
-                selectedBundle={selectedBundle ? (selectedBundle.bundle_name.toLowerCase().includes("summer") ? "summer" : selectedBundle.bundle_name.toLowerCase().includes("ski") ? "ski" : selectedBundle.id) : (isCustomPlanSelected ? "custom" : null)}
+                selectedBundle={
+                  selectedBundle
+                    ? selectedBundle.bundle_name
+                        .toLowerCase()
+                        .includes("summer")
+                      ? "summer"
+                      : selectedBundle.bundle_name.toLowerCase().includes("ski")
+                      ? "ski"
+                      : selectedBundle.id
+                    : isCustomPlanSelected
+                    ? "custom"
+                    : null
+                }
                 onBundleSelect={handleBundleSelect}
               />
             )}
@@ -595,13 +951,25 @@ export default function PricingPage() {
             {currentStep === 3 && (
               <AddonsStep
                 addons={pricingData?.addons || []}
-                selectedAddons={selectedAddons.map(a => a.name.toLowerCase().replace(/\s+/g, ""))}
+                selectedAddons={selectedAddons.map((a) =>
+                  a.id || a.name.toLowerCase().replace(/\s+/g, "")
+                )}
                 toggleAddon={handleToggleAddon}
                 climateControl={climateControl}
                 setClimateControl={handleSetClimateControl}
                 getDeliveryFeePerItem={getDeliveryFeePerItem}
                 protectionPlans={pricingData?.protection_plans || []}
-                protectionPlan={protectionPlan ? (protectionPlan.name.toLowerCase().includes("basic") ? "basic" : protectionPlan.name.toLowerCase().includes("enhanced") ? "enhanced" : protectionPlan.name.toLowerCase().includes("premium") ? "premium" : "basic") : "basic"}
+                protectionPlan={
+                  protectionPlan
+                    ? protectionPlan.name.toLowerCase().includes("basic")
+                      ? "basic"
+                      : protectionPlan.name.toLowerCase().includes("enhanced")
+                      ? "enhanced"
+                      : protectionPlan.name.toLowerCase().includes("premium")
+                      ? "premium"
+                      : "basic"
+                    : "basic"
+                }
                 setProtectionPlan={handleSetProtectionPlan}
               />
             )}
@@ -632,13 +1000,25 @@ export default function PricingPage() {
                 plan={plan}
                 selectedMonths={selectedMonths}
                 selectedBins={selectedBins}
-                selectedAddons={selectedAddons.map(a => a.name.toLowerCase().replace(/\s+/g, ""))}
+                selectedAddons={selectedAddons.map((a) =>
+                  a.id || a.name.toLowerCase().replace(/\s+/g, "")
+                )}
                 climateControl={climateControl}
                 addons={pricingData?.addons || []}
                 calculateBookingTotal={calculateBookingTotal}
                 selectedBundle={selectedBundle}
                 bundles={pricingData?.bundles || []}
-                protectionPlan={protectionPlan ? (protectionPlan.name.toLowerCase().includes("basic") ? "basic" : protectionPlan.name.toLowerCase().includes("enhanced") ? "enhanced" : protectionPlan.name.toLowerCase().includes("premium") ? "premium" : "basic") : "basic"}
+                protectionPlan={
+                  protectionPlan
+                    ? protectionPlan.name.toLowerCase().includes("basic")
+                      ? "basic"
+                      : protectionPlan.name.toLowerCase().includes("enhanced")
+                      ? "enhanced"
+                      : protectionPlan.name.toLowerCase().includes("premium")
+                      ? "premium"
+                      : "basic"
+                    : "basic"
+                }
                 protectionPlans={pricingData?.protection_plans || []}
                 fullName={fullName}
                 setFullName={handleSetFullName}
@@ -653,7 +1033,7 @@ export default function PricingPage() {
             )}
             {/* Navigation Buttons */}
             <div className="flex justify-between mt-8 pt-8">
-              {currentStep > 1 && (
+              {currentStep > 1 && currentStep < 5 && (
                 <button
                   onClick={() => {
                     // Handle Previous button with bundle logic
@@ -672,112 +1052,34 @@ export default function PricingPage() {
               )}
               {currentStep < 5 && (
                 <button
-                  onClick={() => {
-                    // Step 1 validation: Must select a plan AND (bundle OR custom plan)
-                    if (currentStep === 1) {
-                      if (!plan) {
-                        toast.error("Please select a Payment Plan before proceeding.");
-                        return;
-                      }
-                      if (!selectedBundle && !isCustomPlanSelected) {
-                        toast.error("Please choose a Bundle Offer or Custom Plan before proceeding.");
-                        return;
-                      }
-                      // If bundle is selected, skip to Delivery Info (step 4)
-                      if (selectedBundle) {
-                        setCurrentStep(4);
-                        return;
-                      }
-                      // If custom plan is selected, go to Duration & Bins (step 2)
-                      if (isCustomPlanSelected) {
-                        setCurrentStep(2);
-                        return;
-                      }
-                    }
-                    // Step 2 validation: Must select duration (only for custom plan, not bundles)
-                    // Bins can be 0 (for bulky items only), but duration is required
-                    if (currentStep === 2 && !selectedBundle) {
-                      if (selectedMonths === null || selectedMonths === undefined) {
-                        toast.error("Please select a storage duration before proceeding.");
-                        return;
-                      }
-                      // Duration is selected, allow proceeding (bins can be 0 for bulky items)
-                    }
-                    // Step 4 validation: Must fill all required delivery information fields
-                    if (currentStep === 4) {
-                      if (!fullName || fullName.trim() === "") {
-                        toast.error("Please enter your full name.");
-                        return;
-                      }
-                      if (!email || email.trim() === "") {
-                        toast.error("Please enter your email address.");
-                        return;
-                      }
-                      // Basic email validation
-                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                      if (!emailRegex.test(email.trim())) {
-                        toast.error("Please enter a valid email address.");
-                        return;
-                      }
-                      if (!phone || phone.trim() === "") {
-                        toast.error("Please enter your phone number.");
-                        return;
-                      }
-                      if (!deliveryAddress || deliveryAddress.trim() === "") {
-                        toast.error("Please enter your delivery address.");
-                        return;
-                      }
-                      if (!city || city.trim() === "") {
-                        toast.error("Please enter your city.");
-                        return;
-                      }
-                      if (!state || state.trim() === "") {
-                        toast.error("Please enter your state.");
-                        return;
-                      }
-                      if (!zipCode || zipCode.trim() === "") {
-                        toast.error("Please enter your ZIP code.");
-                        return;
-                      }
-                    }
-                    // Default: go to next step
-                    setCurrentStep((prev) => prev + 1);
-                  }}
-                  suppressHydrationWarning
-                  className="ml-auto px-8 py-3 bg-gradient-to-r from-[#f8992f] to-[#e8911f] text-white rounded-full font-semibold hover:shadow-lg transition cursor-pointer"
+                  onClick={validateStepAndNext}
+                  disabled={isSavingCart}
+                  className="ml-auto px-8 py-3 bg-gradient-to-r from-[#f8992f] to-[#e8911f] text-white rounded-full font-semibold hover:shadow-lg transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Next Step
+                  {isSavingCart ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    "Next Step"
+                  )}
                 </button>
               )}
               {currentStep === 5 && (
                 <button
-                  onClick={() => {
-                    alert("Booking submitted! Check console for details.");
-                    console.log({
-                      plan,
-                      selectedMonths,
-                      selectedBins,
-                      selectedAddons,
-                      climateControl,
-                      total: calculateBookingTotal(),
-                      contactDetails: {
-                        fullName,
-                        email,
-                        phone,
-                      },
-                      deliveryAddress: {
-                        address: deliveryAddress,
-                        city,
-                        state,
-                        zipCode,
-                        notes: deliveryNotes,
-                      },
-                    });
-                  }}
-                  suppressHydrationWarning
-                  className="ml-auto px-8 py-3 bg-gradient-to-r from-[#f8992f] to-[#e8911f] text-white rounded-full font-semibold hover:shadow-lg transition cursor-pointer"
+                  onClick={onCompleteBooking}
+                  disabled={isCompletingBooking}
+                  className="ml-auto px-8 py-3 bg-gradient-to-r from-[#f8992f] to-[#e8911f] text-white rounded-full font-semibold hover:shadow-lg transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Complete Booking
+                  {isCompletingBooking ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    "Complete Booking"
+                  )}
                 </button>
               )}
             </div>

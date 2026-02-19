@@ -6,8 +6,9 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Providers from "./providers";
 import { getSessionLikeData } from "@/lib/api/serverAuth";
 import { getServerPricingData } from "@/lib/api/serverPricing";
+import type { RootState } from "@/store/store";
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -38,15 +39,53 @@ export default async function RootLayout({
   const pricingData = await getServerPricingData(); // fetch pricing data server-side
 
   // Build a preloadedState object matching your store shape
-  const preloadedState = {
+  const preloadedState: Partial<RootState> = {
     auth: {
-      token: session?.token ?? undefined,
+      accessToken: session?.accessToken ?? undefined,
+      refreshToken: session?.refreshToken ?? undefined,
       user: session?.user ?? null,
+      showAuthPopup: false,
+      isLoading: false,
+      authHydrated: false,
     },
     pricing: {
       data: pricingData,
       loading: false,
       error: null,
+    },
+    cart: {
+      // Pricing breakdown
+      total: 0,
+      baseStorageCost: 0,
+      redeliveryFee: 0,
+      climateControlCost: 0,
+      addonsCost: 0,
+      addonsDeliveryCost: 0,
+      protectionPlanCost: 0,
+      savings: 0,
+      // Selections
+      plan: null,
+      bundles: null,
+      addons: [],
+      protectionPlan: null,
+      durationBins: {
+        months: null,
+        bins: 0,
+      },
+      climateControl: false,
+      deliveryInfo: {
+        fullName: "",
+        email: "",
+        phone: "",
+        deliveryAddress: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        deliveryNotes: "",
+      },
+      locationData: null,
+      couponCode: null,
+      zoneDeliveryCharges: 0
     },
   };
 
@@ -64,8 +103,12 @@ export default async function RootLayout({
               {/* Header */}
               <Header />
 
-              {/* Main Content */}
-              <main className="flex-1 relative">{children}</main>
+              {/* Main Content - Suspense required for useSearchParams() in client pages */}
+              <main className="flex-1 relative">
+                <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f8992f]" /></div>}>
+                  {children}
+                </Suspense>
+              </main>
 
               {/* Sticky Mobile Footer */}
               <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e8e8e8] md:hidden shadow-lg">

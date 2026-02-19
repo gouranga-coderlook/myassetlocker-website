@@ -5,7 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const getPricingData = async (): Promise<Pricing> => {
     try {
-        const response = await axios.get<Pricing>(`${API_BASE_URL}/api/public/pricing`, {
+        const response = await axios.get<Pricing>(`${API_BASE_URL}/public/pricing`, {
             headers: {
                 'Content-Type': 'application/json',
             },

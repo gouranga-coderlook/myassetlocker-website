@@ -1,6 +1,6 @@
 "use client";
 import type { Addon, Bundle, Plan, ProtectionPlan } from "@/store/slices/pricingSlice";
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useAppSelector } from "@/store/hooks";
 
 interface SummaryStepProps {
@@ -33,26 +33,17 @@ export default function SummaryStep({
   selectedAddons,
   climateControl,
   addons,
-  calculateBookingTotal,
   selectedBundle,
   bundles,
   protectionPlan,
   protectionPlans,
-  fullName,
-  setFullName,
-  email,
-  setEmail,
-  phone,
-  setPhone,
   prepaidPlan,
-  monthToMonthPlan,
-  getDeliveryFeePerItem,
 }: SummaryStepProps) {
   // Fetch location data from Redux store
   const locationData = useAppSelector((state) => state.cart.locationData);
   
-  // Calculate cost breakdown
-  const costBreakdown = useMemo(() => {
+  // Local calculation function - matches pricing page logic exactly
+  const calculateLocalCostBreakdown = useCallback(() => {
     let baseStorageCost = 0;
     let redeliveryFee = 0;
     let climateControlCost = 0;
@@ -108,18 +99,7 @@ export default function SummaryStep({
 
       if (pricing) {
         baseStorageCost = pricing.base;
-        redeliveryFee = pricing.deliveryFee;
-
-        // Calculate savings (prepaid vs monthly)
-        const isPrepaid = plan.plan_name.toLowerCase().includes("prepaid");
-        if (isPrepaid && monthToMonthPlan) {
-          const monthlyPricing = monthToMonthPlan.pricing[monthsStr]?.[binsStr];
-          if (monthlyPricing) {
-            const monthlyTotal = monthlyPricing.base + monthlyPricing.deliveryFee;
-            const prepaidTotal = pricing.base + pricing.deliveryFee;
-            savings = Math.max(0, monthlyTotal - prepaidTotal);
-          }
-        }
+        redeliveryFee = pricing.deliveryFee;       
       }
     }
 
@@ -140,24 +120,41 @@ export default function SummaryStep({
       }
     }
 
-    // Add-ons cost
+    // Add-ons cost - match pricing page logic exactly
     if (selectedAddons.length > 0) {
-      selectedAddons.forEach((addonKey) => {
+      selectedAddons.forEach((addonIdentifier) => {
+        // Try to find by ID first, then fallback to name-based key
         const addon = addons.find(a => 
-          a.name.toLowerCase().replace(/\s+/g, "") === addonKey
+          (a.id && a.id === addonIdentifier) ||
+          (!a.id && a.name.toLowerCase().replace(/\s+/g, "") === addonIdentifier)
         );
         if (addon) {
           if (addon.recurrence === "monthly" && selectedMonths) {
-            addonsCost += addon.amount * selectedMonths;
+            if (addon.chargeType === "percent") {
+              // For percent-based monthly addons: calculate percentage of monthly storage cost
+              const monthlyStorageCost = selectedBins > 0 && plan
+                ? selectedBins * (plan.perBinPrice || prepaidPlan?.perBinPrice || 7.5)
+                : 0;
+              const monthlyAddonCost = monthlyStorageCost * (addon.amount / 100);
+              addonsCost += monthlyAddonCost * selectedMonths;
+            } else {
+              // Fixed amount addons
+              addonsCost += addon.amount * selectedMonths;
+            }
           } else if (addon.recurrence === "one_time") {
-            addonsCost += addon.amount;
+            if (addon.chargeType === "percent") {
+              // For one-time percent addons, calculate percentage of total storage cost
+              addonsCost += baseStorageCost * (addon.amount / 100);
+            } else {
+              addonsCost += addon.amount;
+            }
           }
           addonsDeliveryCost += addon.reDeliveryFee;
         }
       });
     }
 
-    // Protection plan cost
+    // Protection plan cost - match pricing page logic
     if (protectionPlan !== "basic" && selectedMonths) {
       const planData = protectionPlans.find(p => 
         p.name.toLowerCase().includes(protectionPlan)
@@ -176,20 +173,40 @@ export default function SummaryStep({
       protectionPlanCost,
       savings,
     };
-  }, [
-    plan,
-    selectedBundle,
-    bundles,
-    selectedBins,
-    selectedMonths,
-    prepaidPlan,
-    monthToMonthPlan,
-    climateControl,
-    selectedAddons,
-    addons,
-    protectionPlan,
-    protectionPlans,
-  ]);
+  }, [plan, selectedBundle, bundles, selectedBins, selectedMonths, prepaidPlan, climateControl, selectedAddons, addons, protectionPlan, protectionPlans]);
+  
+  // Always calculate breakdown from props to ensure accuracy
+  // This ensures the summary always reflects what the user selected, not stale cart data
+  const costBreakdown = useMemo(() => {
+    return calculateLocalCostBreakdown();
+  }, [calculateLocalCostBreakdown]);
+
+  // Calculate total amount including all costs and delivery charge
+  const calculatedTotal = useMemo(() => {
+    let total = 
+      costBreakdown.baseStorageCost +
+      costBreakdown.redeliveryFee +
+      costBreakdown.climateControlCost +
+      costBreakdown.addonsCost +
+      costBreakdown.addonsDeliveryCost +
+      costBreakdown.protectionPlanCost;
+
+    // Add delivery charge from locationData
+    if (locationData?.matchedZone) {
+      total += locationData.matchedZone.price;
+    } else if (locationData?.deliveryCharge && typeof locationData.deliveryCharge === 'number') {
+      // const region = locationData.nearestStore?.region?.toLowerCase();
+      const charge = locationData.deliveryCharge;
+      // Convert rupees to USD if region is India (1 USD ≈ 83 INR)
+      total += charge;
+    }
+
+    // Subtract savings (savings are already reflected in baseStorageCost for bundles, but shown separately for prepaid)
+    // For prepaid plans, savings is the difference, so we don't subtract it again
+    // For bundles with discounts, the discount is already applied to baseStorageCost
+    
+    return total;
+  }, [costBreakdown, locationData]);
 
   // Get bundle data for display
   const bundleData = useMemo(() => {
@@ -235,11 +252,13 @@ export default function SummaryStep({
       items.push(`${selectedBins} bin${selectedBins > 1 ? "s" : ""}`);
     }
     if (selectedAddons.length > 0) {
-      const addonNames = selectedAddons.map((key) => {
+      const addonNames = selectedAddons.map((addonIdentifier) => {
+        // Try to find by ID first, then fallback to name-based key
         const addon = addons.find(a => 
-          a.name.toLowerCase().replace(/\s+/g, "") === key
+          (a.id && a.id === addonIdentifier) ||
+          (!a.id && a.name.toLowerCase().replace(/\s+/g, "") === addonIdentifier)
         );
-        return addon?.name || key;
+        return addon?.name || addonIdentifier;
       });
       items.push(addonNames.join(", "));
     }
@@ -337,13 +356,14 @@ export default function SummaryStep({
         {/* Delivery Charge (when matchedZone is null but deliveryCharge exists) */}
         {!locationData?.matchedZone && locationData?.deliveryCharge && typeof locationData.deliveryCharge === 'number' && (
           <div className="flex justify-between py-2 border-b border-gray-200">
-            <span className="text-gray-600">Delivery Charge:</span>
+            <span className="text-gray-600">Delivery Charge (Zone):</span>
             <span className="font-semibold">
               ${(() => {
-                const region = locationData.nearestStore?.region?.toLowerCase();
+                // const region = locationData.nearestStore?.region?.toLowerCase();
                 const charge = locationData.deliveryCharge;
                 // Convert rupees to USD if region is India (1 USD ≈ 83 INR)
-                return region === 'india' ? (charge / 83).toFixed(2) : charge.toFixed(2);
+                const displayCharge = charge;
+                return displayCharge.toFixed(2);
               })()}
             </span>
           </div>
@@ -390,7 +410,7 @@ export default function SummaryStep({
         )}
 
         {/* Savings (only for prepaid) */}
-        {plan?.plan_name.toLowerCase().includes("prepaid") && costBreakdown.savings > 0 && (
+        {plan?.plan_name?.toLowerCase().includes("prepaid") && costBreakdown.savings > 0 && (
           <div className="flex justify-between py-2 border-b border-gray-200">
             <span className="text-gray-600">Total Savings:</span>
             <span className="font-semibold text-[#22c55e]">
@@ -403,7 +423,7 @@ export default function SummaryStep({
         <div className="flex justify-between pt-4">
           <span className="text-xl font-bold">Total Amount:</span>
           <span className="text-2xl font-bold text-[#f8992f]">
-            ${calculateBookingTotal().toFixed(2)}
+            ${calculatedTotal.toFixed(2)}
           </span>
         </div>
       </div>

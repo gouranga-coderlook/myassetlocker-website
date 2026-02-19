@@ -1,0 +1,709 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
+import { valetStorageService, type CreatePickupRequest, type OrderItem, type TimeSlot } from "@/lib/api/valetStorageService";
+import { getBookingById, type Booking } from "@/lib/api/bookingService";
+import toast from "react-hot-toast";
+import Hero from "@/components/Hero";
+import AuthLoadingView from "@/components/AuthLoadingView";
+import { useAuth } from "@/lib/hooks/useAuth";
+
+export default function CreatePickupRequestPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { authHydrated } = useAuth();
+  const userId = useSelector((state: RootState) => state.auth.user?.id);
+  const hasRedirectedForAuth = useRef(false);
+  const hasRedirectedForBooking = useRef(false);
+
+  const [loading, setLoading] = useState(false);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [loadingBooking, setLoadingBooking] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTimeSlotId, setSelectedTimeSlotId] = useState("");
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
+  const [bookingId, setBookingId] = useState("");
+  const [booking, setBooking] = useState<Booking | null>(null);
+  const [pickupAddress, setPickupAddress] = useState("");
+  const [notes, setNotes] = useState("");
+  const [customItems, setCustomItems] = useState<OrderItem[]>([
+    { itemId: "", description: "", quantity: 1 },
+  ]);
+  const [showItems, setShowItems] = useState(false);
+
+  /*
+   * Auth and routing flow (industry-standard: single message, single redirect, no flash):
+   * 1. Wait for auth hydration so we don't show wrong state or duplicate toasts.
+   * 2. If unauthenticated: one toast, set authReturnUrl for post-login, redirect to home with popup (ref guards once).
+   * 3. If authenticated but no bookingId: silent redirect to /bookings so user can select a booking (ref guards once).
+   * 4. If authenticated with bookingId: load booking and show form.
+   */
+  useEffect(() => {
+    if (!authHydrated || userId) return;
+    if (hasRedirectedForAuth.current) return;
+    hasRedirectedForAuth.current = true;
+    toast.error("Please sign in to create a pickup request");
+    sessionStorage.setItem("authReturnUrl", "/valet-storage/pickup");
+    sessionStorage.setItem("openAuthPopup", "true");
+    router.replace("/");
+  }, [authHydrated, userId, router]);
+
+  useEffect(() => {
+    if (!authHydrated || !userId) return;
+    const bookingIdParam = searchParams?.get("bookingId");
+    if (bookingIdParam) {
+      setBookingId(bookingIdParam);
+      fetchBookingDetails(bookingIdParam);
+    } else {
+      if (hasRedirectedForBooking.current) return;
+      hasRedirectedForBooking.current = true;
+      router.replace("/bookings");
+    }
+  }, [authHydrated, userId, searchParams, router]);
+
+  const fetchBookingDetails = async (id: string) => {
+    try {
+      setLoadingBooking(true);
+      const bookingData = await getBookingById(id);
+      if (bookingData) {
+        setBooking(bookingData);
+        // Pre-fill pickup address from booking delivery info if available
+        if (bookingData.deliveryInfo?.address) {
+          const addressParts = [
+            bookingData.deliveryInfo.address,
+            bookingData.deliveryInfo.city,
+            bookingData.deliveryInfo.state,
+            bookingData.deliveryInfo.zipCode,
+          ].filter(Boolean);
+          setPickupAddress(addressParts.join(", "));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching booking details:", error);
+      toast.error("Failed to load booking details");
+    } finally {
+      setLoadingBooking(false);
+    }
+  };
+
+  // Fetch available time slots when date is selected
+  useEffect(() => {
+    if (selectedDate) {
+      fetchAvailableTimeSlots(selectedDate);
+    } else {
+      setAvailableTimeSlots([]);
+      setSelectedTimeSlotId("");
+    }
+  }, [selectedDate]);
+
+  const fetchAvailableTimeSlots = async (date: string) => {
+    try {
+      setLoadingSlots(true);
+      const slots = await valetStorageService.getAvailableTimeSlots(date, "pickup", true);
+      setAvailableTimeSlots(slots);
+      if (slots.length === 0) {
+        toast.error("No available time slots for the selected date. Please choose another date.");
+      }
+    } catch (error: unknown) {
+      console.error("Error fetching time slots:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to load available time slots");
+      setAvailableTimeSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+
+  const formatTimeSlot = (slot: TimeSlot) => {
+    // Format time to HH:mm (remove seconds if present)
+    const formatTime = (time: string) => {
+      // Handle both "HH:mm:ss" and "HH:mm" formats
+      const parts = time.split(":");
+      return `${parts[0]}:${parts[1]}`;
+    };
+    return `${formatTime(slot.startTime)} - ${formatTime(slot.endTime)}`;
+  };
+
+  const getMinDate = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
+
+  // Check if a time slot has expired based on current time
+  const isSlotExpired = (slot: TimeSlot) => {
+    if (!slot.startTime || !slot.slotDate) return false;
+    
+    const now = new Date();
+    const todayDateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    
+    // If slot is for a past date, it's expired
+    if (slot.slotDate < todayDateStr) {
+      return true;
+    }
+    
+    // If the slot is for today, check if start time has passed
+    if (slot.slotDate === todayDateStr) {
+      // Parse startTime (format: "HH:mm:ss" or "HH:mm")
+      const timeParts = slot.startTime.split(":");
+      const slotHours = parseInt(timeParts[0], 10);
+      const slotMinutes = parseInt(timeParts[1] || "0", 10);
+      
+      // Get current hours and minutes
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      
+      // Compare hours first, then minutes
+      if (currentHours > slotHours) {
+        return true; // Current time is past the slot start time
+      }
+      if (currentHours === slotHours && currentMinutes >= slotMinutes) {
+        return true; // Current time is at or past the slot start time
+      }
+      
+      return false; // Slot hasn't started yet
+    }
+    
+    return false;
+  };
+
+  // Check if booking has a custom plan
+  const isCustomPlan = () => {
+    if (!booking) return false;
+    // Custom plan: no bundle and plan name contains "custom" or plan type is custom
+    const hasNoBundle = !booking.bundle;
+    const planName = booking.plan?.name?.toLowerCase() || "";
+    const isCustomPlanName = planName.includes("custom");
+    // Also check if there's a plan but no predefined items
+    return hasNoBundle && (isCustomPlanName || (booking.plan && booking.items.length === 0));
+  };
+
+  const addCustomItem = () => {
+    setCustomItems([...customItems, { itemId: "", description: "", quantity: 1 }]);
+  };
+
+  const removeCustomItem = (index: number) => {
+    if (customItems.length > 1) {
+      setCustomItems(customItems.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateCustomItem = (index: number, field: keyof OrderItem, value: string | number) => {
+    const updated = [...customItems];
+    updated[index] = { ...updated[index], [field]: value };
+    setCustomItems(updated);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!userId) {
+      toast.error("Please login to create a pickup request");
+      return;
+    }
+
+    if (!bookingId) {
+      toast.error("Booking ID is required. Please select a booking first.");
+      router.push("/bookings");
+      return;
+    }
+
+    // Validate date and time slot
+    if (!selectedDate) {
+      toast.error("Please select a preferred pickup date");
+      return;
+    }
+
+    if (!selectedTimeSlotId) {
+      toast.error("Please select a preferred pickup time slot");
+      return;
+    }
+
+    // Find selected time slot
+    const selectedSlot = availableTimeSlots.find(slot => slot.id === selectedTimeSlotId);
+    if (!selectedSlot) {
+      toast.error("Selected time slot is no longer available. Please select another.");
+      return;
+    }
+
+    // Validate custom items if custom plan
+    if (isCustomPlan()) {
+      const validItems = customItems.filter(
+        (item) => item.description.trim() !== "" && item.quantity > 0
+      );
+      if (validItems.length === 0) {
+        toast.error("Please add at least one item for pickup");
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      // Build notes with custom items if custom plan
+      let finalNotes = notes;
+      if (isCustomPlan() && customItems.length > 0) {
+        const validItems = customItems.filter(
+          (item) => item.description.trim() !== "" && item.quantity > 0
+        );
+        if (validItems.length > 0) {
+          const itemsList = validItems.map((item, idx) => 
+            `${idx + 1}. ${item.description} (Qty: ${item.quantity}${item.itemId ? `, ID: ${item.itemId}` : ""})`
+          ).join("\n");
+          finalNotes = notes 
+            ? `${notes}\n\nItems to Pickup:\n${itemsList}`
+            : `Items to Pickup:\n${itemsList}`;
+        }
+      }
+
+      const request: CreatePickupRequest = {
+        bookingId,
+        address: pickupAddress || undefined,
+        notes: finalNotes || undefined,
+        slotId: selectedTimeSlotId, // Send slotId to update booking table
+      };
+
+      const response = await valetStorageService.createPickupRequest(request);
+      
+      toast.success("Pickup request created successfully!");
+      // Navigate to booking details page
+      router.push(`/bookings/${response.bookingId || bookingId}`);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to create pickup request");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!authHydrated) {
+    return (
+      <AuthLoadingView
+        headline="Request Pickup"
+        bodyText="Schedule a pickup for your items to be stored safely"
+        backgroundImage="/household-storage-service.webp"
+      />
+    );
+  }
+  if (!userId) {
+    return null;
+  }
+  // No bookingId: redirect to /bookings (effect handles it); show loading to avoid form flash
+  if (!searchParams?.get("bookingId")) {
+    return (
+      <AuthLoadingView
+        headline="Request Pickup"
+        bodyText="Taking you to your bookings..."
+        backgroundImage="/household-storage-service.webp"
+      />
+    );
+  }
+
+  // Show loading state while fetching booking details
+  if (loadingBooking && !booking) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
+        <Hero
+          backgroundImage="/household-storage-service.webp"
+          headline="Request Pickup"
+          bodyText="Schedule a pickup for your items to be stored safely"
+          height="compact"
+        />
+        <div className="max-w-4xl mx-auto px-4 py-12">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-12">
+            <div className="flex flex-col items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f8992f] mb-4"></div>
+              <p className="text-gray-600 text-lg font-medium">Loading booking details...</p>
+              <p className="text-gray-500 text-sm mt-2">Please wait while we fetch your booking information</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
+      <Hero
+        backgroundImage="/household-storage-service.webp"
+        headline="Request Pickup"
+        bodyText="Schedule a pickup for your items to be stored safely"
+        height="compact"
+      />
+
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 md:p-8">
+          {/* Booking ID (Required) */}
+          {bookingId && (
+            <div className="mb-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-blue-900 mb-1">Booking Information</h4>
+                    {loadingBooking ? (
+                      <p className="text-sm text-blue-800">Loading booking details...</p>
+                    ) : booking ? (
+                      <>
+                        <p className="text-sm text-blue-800 mb-2">
+                          Booking: <span className="font-mono font-semibold">{booking.bookingNumber}</span>
+                        </p>
+                        <p className="text-xs text-blue-700 mb-2">
+                          Status: <span className="capitalize">{booking.status}</span>
+                          {booking.paymentStatus && (
+                            <> • Payment: <span className="capitalize">{booking.paymentStatus}</span></>
+                          )}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => router.push("/bookings")}
+                          className="text-xs text-blue-600 hover:text-blue-700 underline"
+                        >
+                          Select different booking
+                        </button>
+                      </>
+                    ) : (
+                      <p className="text-sm text-blue-800">
+                        Booking ID: <span className="font-mono font-semibold">{bookingId}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Booking Items - Collapsible */}
+          {booking && booking.items && booking.items.length > 0 && !isCustomPlan() && (
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => setShowItems(!showItems)}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700 cursor-pointer">
+                    Items to be Picked Up
+                  </label>
+                  <span className="px-2 py-1 bg-[#f8992f] text-white rounded text-xs font-medium">
+                    {booking.items.length} {booking.items.length === 1 ? 'item' : 'items'}
+                  </span>
+                </div>
+                <svg
+                  className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${showItems ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showItems && (
+                <div className="mt-3 space-y-3 border-t border-gray-200 pt-3">
+                  {booking.items.map((item, index) => (
+                    <div
+                      key={item.id || index}
+                      className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="text-sm font-semibold text-gray-900">{item.name}</h4>
+                            <span className="px-2 py-1 bg-gray-200 rounded text-xs font-medium text-gray-600 capitalize">
+                              {item.type}
+                            </span>
+                          </div>
+                          {item.description && (
+                            <p className="text-xs text-gray-600 mb-2">{item.description}</p>
+                          )}
+                          <div className="flex items-center gap-4 text-xs text-gray-600">
+                            <span>Quantity: <span className="font-semibold">{item.quantity}</span></span>
+                            <span>Price: <span className="font-semibold">${item.price.toFixed(2)}</span></span>
+                            <span>Total: <span className="font-semibold text-[#f8992f]">${(item.price * item.quantity).toFixed(2)}</span></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-500 mt-2">
+                    These items from your booking will be picked up and stored.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Custom Items Section - Only show for custom plans */}
+          {booking && isCustomPlan() && (
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Items to Pick Up <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={addCustomItem}
+                  className="text-sm text-[#f8992f] hover:text-[#d8852a] font-medium flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Item
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {customItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h4 className="text-sm font-medium text-gray-700">Item {index + 1}</h4>
+                      {customItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeCustomItem(index)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Item ID (Optional)</label>
+                        <input
+                          type="text"
+                          value={item.itemId}
+                          onChange={(e) => updateCustomItem(index, "itemId", e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] text-sm"
+                          placeholder="e.g., ITEM-001"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-xs text-gray-600 mb-1">
+                          Description <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={item.description}
+                          onChange={(e) => updateCustomItem(index, "description", e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] text-sm"
+                          placeholder="e.g., 3 boxes of books, 2 suitcases"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">
+                          Quantity <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateCustomItem(index, "quantity", parseInt(e.target.value) || 1)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] text-sm"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                Add the items you want to be picked up and stored. These will be included in your pickup request.
+              </p>
+            </div>
+          )}
+
+          {/* Preferred Pickup Date - Mandatory */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Preferred Pickup Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              min={getMinDate()}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f]"
+              required
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              Select your preferred pickup date. Available time slots will be shown below.
+            </p>
+          </div>
+
+          {/* Available Time Slots - Mandatory */}
+          {selectedDate && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Preferred Pickup Time <span className="text-red-500">*</span>
+              </label>
+              {loadingSlots ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {[...Array(6)].map((_, index) => (
+                    <div
+                      key={index}
+                      className="p-4 rounded-lg border-2 border-gray-200 bg-white animate-pulse"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="h-5 bg-gray-200 rounded w-24"></div>
+                        <div className="h-5 w-5 bg-gray-200 rounded"></div>
+                      </div>
+                      <div className="h-4 bg-gray-200 rounded w-32"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : availableTimeSlots.length === 0 ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800">
+                    No available time slots for the selected date. Please choose another date.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {availableTimeSlots.map((slot) => {
+                    const isSelected = selectedTimeSlotId === slot.id;
+                    const isFull = slot.bookedCount >= slot.maxCapacity;
+                    const isExpired = isSlotExpired(slot);
+                    const isDisabled = isFull || isExpired;
+                    
+                    return (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        onClick={() => !isDisabled && setSelectedTimeSlotId(slot.id)}
+                        disabled={isDisabled}
+                        className={`p-4 rounded-lg border-2 text-left transition-all ${
+                          isSelected
+                            ? "border-[#f8992f] bg-[#fef7ed] shadow-md"
+                            : isDisabled
+                            ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
+                            : "border-gray-200 hover:border-[#f8992f] hover:bg-[#fef7ed]/50 bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`font-semibold ${isSelected ? "text-[#f8992f]" : isDisabled ? "text-gray-400" : "text-gray-900"}`}>
+                            {formatTimeSlot(slot)}
+                          </span>
+                          {isSelected && (
+                            <svg className="w-5 h-5 text-[#f8992f]" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {isExpired ? (
+                            <span className="text-red-600 font-medium">Expired</span>
+                          ) : isFull ? (
+                            <span className="text-red-600 font-medium">Fully Booked</span>
+                          ) : (
+                            <span>{slot.maxCapacity - slot.bookedCount} slots available</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {selectedTimeSlotId && (
+                <p className="mt-2 text-sm text-green-600">
+                  ✓ Time slot selected: {formatTimeSlot(availableTimeSlots.find(s => s.id === selectedTimeSlotId)!)}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Pickup Address */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Pickup Address (Optional)
+            </label>
+            <textarea
+              value={pickupAddress}
+              onChange={(e) => setPickupAddress(e.target.value)}
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f]"
+              placeholder="Enter the address where items should be picked up (if different from booking address)"
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              If not provided, we&apos;ll use the address from your booking
+            </p>
+          </div>
+
+          {/* Notes */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Additional Notes (Optional)
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f]"
+              placeholder="Any special instructions or notes for the pickup team"
+            />
+          </div>
+
+          {/* Info Box */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h4 className="text-sm font-semibold text-blue-900 mb-1">What happens next?</h4>
+                <ul className="text-xs text-blue-800 space-y-1">
+                  <li>• We&apos;ll review your request and confirm the pickup</li>
+                  <li>• You&apos;ll receive a confirmation with the scheduled time</li>
+                  <li>• Our team will collect your items from your location</li>
+                  <li>• Items will be safely stored in our climate-controlled facility</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end space-x-4">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !selectedDate || !selectedTimeSlotId}
+              className="px-6 py-3 bg-gradient-to-r from-[#ea9637] to-[#FB9A2D] hover:from-[#d8852a] hover:to-[#e88a25] text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
+            >
+              {loading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating...
+                </span>
+              ) : (
+                "Create Pickup Request"
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

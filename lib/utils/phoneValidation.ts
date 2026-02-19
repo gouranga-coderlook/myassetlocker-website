@@ -1119,6 +1119,38 @@ export function getAllCountries(): CountryInfo[] {
 }
 
 /**
+ * Detect country code from phone number (first part = dial code, rest = number).
+ * Uses longest dial-code match so e.g. "358" (Finland) is chosen over "35".
+ * Returns undefined if no match.
+ */
+export function getCountryCodeFromPhoneNumber(phone: string): CountryCode | undefined {
+  const cleaned = cleanPhoneNumber(phone);
+  if (!cleaned) return undefined;
+  const digits = cleaned.startsWith("+") ? cleaned.slice(1) : cleaned;
+  const countries = getAllCountries().sort((a, b) => b.dialCode.length - a.dialCode.length);
+  for (const info of countries) {
+    if (digits.startsWith(info.dialCode)) return info.code as CountryCode;
+  }
+  return undefined;
+}
+
+/**
+ * Get national number only (no country/dial code) from a full phone string.
+ * Returns formatted national number for display, or undefined if country cannot be detected.
+ */
+export function getNationalNumberFromPhoneNumber(phone: string): string | undefined {
+  const countryCode = getCountryCodeFromPhoneNumber(phone);
+  if (!countryCode) return undefined;
+  const info = getCountryInfo(countryCode);
+  const cleaned = cleanPhoneNumber(phone);
+  const digits = cleaned.startsWith("+") ? cleaned.slice(1) : cleaned;
+  if (!digits.startsWith(info.dialCode)) return undefined;
+  const nationalDigits = digits.slice(info.dialCode.length);
+  if (!nationalDigits.length) return undefined;
+  return info.format(nationalDigits);
+}
+
+/**
  * Search countries by name
  */
 export function searchCountries(query: string): CountryInfo[] {

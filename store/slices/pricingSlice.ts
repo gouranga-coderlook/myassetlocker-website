@@ -29,6 +29,7 @@ export interface Bundle {
 }
 
 export interface Addon {
+    id?: string; // Optional ID from API
     name: string;
     description: string;
     chargeType: "fixed" | "percent";

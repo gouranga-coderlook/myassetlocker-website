@@ -1,4 +1,4 @@
-import type { Pricing, Plan, Bundle, Addon, ProtectionPlan } from "@/store/slices/pricingSlice";
+import type { Pricing, Plan } from "@/store/slices/pricingSlice";
 
 // Component-expected format types
 export interface TransformedPricingData {

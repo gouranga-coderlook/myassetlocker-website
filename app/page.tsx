@@ -1,7 +1,46 @@
+"use client";
+
+import { useEffect } from "react";
 import Hero from "@/components/Hero";
 import AppShowcase from "@/components/AppShowcase";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 export default function Home() {
+  const { openAuthPopup } = useAuth();
+
+  useEffect(() => {
+    // Check for auth popup flag from sessionStorage (set by 401 interceptor)
+    // Also check URL parameters for backward compatibility
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const signin = urlParams.get("signin");
+      const returnUrl = urlParams.get("returnUrl");
+      const shouldOpenPopup = sessionStorage.getItem("openAuthPopup") === "true";
+      
+      // Check both sessionStorage flag and URL parameter for backward compatibility
+      if (shouldOpenPopup || signin === "true") {
+        // Store returnUrl in sessionStorage for redirect after login (if not already stored)
+        if (returnUrl && !sessionStorage.getItem("authReturnUrl")) {
+          sessionStorage.setItem("authReturnUrl", returnUrl);
+        }
+        
+        // Clear the sessionStorage flag
+        sessionStorage.removeItem("openAuthPopup");
+        
+        // Clean up URL parameters if present (for backward compatibility)
+        if (signin === "true") {
+          const cleanUrl = window.location.pathname;
+          window.history.replaceState({}, "", cleanUrl);
+        }
+        
+        // Open auth popup
+        setTimeout(() => {
+          openAuthPopup();
+        }, 300); // Small delay to ensure page is fully loaded
+      }
+    }
+  }, [openAuthPopup]);
+
   return (
     <div className="min-h-screen">
       <Hero
@@ -12,6 +51,7 @@ export default function Home() {
           enabled: true,
           text: "GET STARTED",
           href: "https://apps.apple.com/app/myassetlocker",
+          openInNewTab: true,
         }}
         isHomePage={true}
       />

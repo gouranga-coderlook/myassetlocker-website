@@ -75,9 +75,15 @@ export interface BookingCart {
   // Location data from StoreLocationFinder
   locationData: LocationData | null;
   
+  // Coupon code
+  couponCode?: string | null;
+  
   // Metadata
   createdAt?: string;
   updatedAt?: string;
+  cartId?: string; // UUID for guest cart identification
+  cartItemId?: string; // UUID for cart item identification (when loaded from API)
+  zoneDeliveryCharges: number | null;
 }
 
 const initialState: BookingCart = {
@@ -90,6 +96,7 @@ const initialState: BookingCart = {
   addonsDeliveryCost: 0,
   protectionPlanCost: 0,
   savings: 0,
+  zoneDeliveryCharges:0,
   
   // Selections
   plan: null,
@@ -113,6 +120,9 @@ const initialState: BookingCart = {
   //   zipCode: "10001",
   //   deliveryNotes: "Please call before delivery. Ring doorbell twice.",
   // },
+  
+  locationData: null,
+  couponCode: null,
 
   deliveryInfo: {
     fullName: "",
@@ -124,8 +134,6 @@ const initialState: BookingCart = {
     zipCode: "",
     deliveryNotes: "",
   },
-  
-  locationData: null,
 };
 
 const cartSlice = createSlice({
@@ -196,22 +204,34 @@ const cartSlice = createSlice({
       state.updatedAt = new Date().toISOString();
     },
 
-    // Addon actions - store full addon objects
+    // Addon actions - store full addon objects (managed by ID when available, fallback to name)
     addAddon: (state, action: PayloadAction<Addon>) => {
-      const exists = state.addons.some(a => a.name === action.payload.name);
+      // Check if addon exists by ID first, then by name
+      const exists = state.addons.some(a => 
+        (a.id && action.payload.id && a.id === action.payload.id) ||
+        (!a.id && !action.payload.id && a.name === action.payload.name)
+      );
       if (!exists) {
         state.addons.push(action.payload);
         state.updatedAt = new Date().toISOString();
       }
     },
     removeAddon: (state, action: PayloadAction<string>) => {
-      state.addons = state.addons.filter(
-        (addon) => addon.name !== action.payload
-      );
+      // Remove by ID if provided (UUID format), otherwise by name
+      const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(action.payload);
+      if (isId) {
+        state.addons = state.addons.filter((addon) => addon.id !== action.payload);
+      } else {
+        state.addons = state.addons.filter((addon) => addon.name !== action.payload);
+      }
       state.updatedAt = new Date().toISOString();
     },
     toggleAddon: (state, action: PayloadAction<Addon>) => {
-      const index = state.addons.findIndex(a => a.name === action.payload.name);
+      // Find by ID first, then by name
+      const index = state.addons.findIndex(a => 
+        (a.id && action.payload.id && a.id === action.payload.id) ||
+        (!a.id && !action.payload.id && a.name === action.payload.name)
+      );
       if (index === -1) {
         state.addons.push(action.payload);
       } else {
@@ -293,6 +313,12 @@ const cartSlice = createSlice({
         updatedAt: new Date().toISOString(),
       });
     },
+
+    // Coupon code action
+    setCouponCode: (state, action: PayloadAction<string | null>) => {
+      state.couponCode = action.payload;
+      state.updatedAt = new Date().toISOString();
+    },
   },
 });
 
@@ -333,6 +359,9 @@ export const {
   updateCart,
   clearCart,
   initializeCart,
+  
+  // Coupon
+  setCouponCode,
 } = cartSlice.actions;
 
 export default cartSlice.reducer;

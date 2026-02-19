@@ -14,8 +14,8 @@ const ADDON_ICONS: Record<string, string> = {
 
 interface AddonsStepProps {
   addons: Addon[];
-  selectedAddons: string[];
-  toggleAddon: (addon: string) => void;
+  selectedAddons: string[]; // Array of addon IDs or names (for backward compatibility)
+  toggleAddon: (addon: Addon) => void; // Now accepts full Addon object
   climateControl: boolean;
   setClimateControl: (value: boolean) => void;
   getDeliveryFeePerItem: () => number;
@@ -30,15 +30,12 @@ export default function AddonsStep({
   toggleAddon,
   climateControl,
   setClimateControl,
-  getDeliveryFeePerItem,
   protectionPlans,
   protectionPlan,
   setProtectionPlan,
 }: AddonsStepProps) {
   // Filter out climate control as it's handled separately
   const bulkyAddons = addons.filter(a => a.name !== "Climate-Controlled Storage");
-  const climateAddon = addons.find(a => a.name === "Climate-Controlled Storage");
-
   // Sort protection plans by price (low to high)
   const sortedProtectionPlans = useMemo(() => {
     return [...protectionPlans].sort((a, b) => a.price - b.price);
@@ -59,30 +56,32 @@ export default function AddonsStep({
         <h3 className="text-xl font-semibold mb-4">Bulky Items Storage</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {bulkyAddons.map((addon) => {
-            const addonKey = addon.name.toLowerCase().replace(/\s+/g, "");
+            // Use ID if available, otherwise fallback to name-based key
+            const addonIdentifier = addon.id || addon.name.toLowerCase().replace(/\s+/g, "");
+            const isSelected = selectedAddons.includes(addonIdentifier);
             const priceDisplay = addon.recurrence === "monthly" 
               ? `$${addon.amount}/month`
               : `$${addon.amount}`;
             
             return (
               <div
-                key={addon.name}
-                onClick={() => toggleAddon(addonKey)}
+                key={addon.id || addon.name}
+                onClick={() => toggleAddon(addon)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") toggleAddon(addonKey);
+                  if (e.key === "Enter" || e.key === " ") toggleAddon(addon);
                 }}
                 role="button"
                 tabIndex={0}
                 className={`flex items-center p-4 bg-white rounded-lg border-2 cursor-pointer transition ${
-                  selectedAddons.includes(addonKey)
+                  isSelected
                     ? "border-[#f8992f]"
                     : "border-gray-200 hover:border-[#f8992f]"
                 }`}
               >
                 <input
                   type="checkbox"
-                  checked={selectedAddons.includes(addonKey)}
-                  onChange={() => toggleAddon(addonKey)}
+                  checked={isSelected}
+                  onChange={() => toggleAddon(addon)}
                   className="w-5 h-5 mr-4"
                 />
                 <div className="flex-1">
