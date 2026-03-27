@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useForm } from "react-hook-form";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { updateUser } from "@/store/slices/authSlice";
@@ -20,10 +21,18 @@ import {
 import Image from "next/image";
 import Hero from "@/components/Hero";
 import AuthLoadingView from "@/components/AuthLoadingView";
+import Input from "@/components/ui/Input";
 import toast, { Toaster } from "react-hot-toast";
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const MAX_IMAGE_SIZE_MB = 2;
+
+interface ProfileFormValues {
+  firstName: string;
+  lastName: string;
+  email: string;
+  mobilePhoneNumber: string;
+}
 
 export default function ProfilePage() {
   const dispatch = useAppDispatch();
@@ -36,10 +45,6 @@ export default function ProfilePage() {
   }, [profileError]);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [mobilePhoneNumber, setMobilePhoneNumber] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>("US");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarRemoved, setAvatarRemoved] = useState(false);
@@ -53,6 +58,20 @@ export default function ProfilePage() {
   const uploadedBlobUrlRef = useRef<string | null>(null);
   const [serverAvatarBlobUrl, setServerAvatarBlobUrl] = useState<string | null>(null);
   const [serverAvatarFetchFailed, setServerAvatarFetchFailed] = useState(false);
+  const { register, setValue, getValues, watch, handleSubmit, trigger, formState: { errors, isValid } } = useForm<ProfileFormValues>({
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      mobilePhoneNumber: "",
+    },
+    mode: "onChange",
+  });
+
+  const firstName = watch("firstName");
+  const lastName = watch("lastName");
+  const email = watch("email");
+  const mobilePhoneNumber = watch("mobilePhoneNumber");
 
   const allCountries = useMemo(
     () => getAllCountries().sort((a, b) => a.name.localeCompare(b.name)),
@@ -70,12 +89,13 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!profile) return;
-    setFirstName(profile.firstName ?? "");
-    setLastName(profile.lastName ?? "");
-    setMobilePhoneNumber(parsePhoneForDisplay(profile.mobilePhoneNumber ?? "") ?? "");
+    setValue("firstName", profile.firstName ?? "", { shouldValidate: true });
+    setValue("lastName", profile.lastName ?? "", { shouldValidate: true });
+    setValue("email", profile.email ?? user?.email ?? "", { shouldValidate: true });
+    setValue("mobilePhoneNumber", parsePhoneForDisplay(profile.mobilePhoneNumber ?? "") ?? "", { shouldValidate: true });
     setSelectedCountry(inferCountryFromPhone(profile.mobilePhoneNumber ?? "") ?? "US");
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.id, profile?.firstName, profile?.lastName, profile?.mobilePhoneNumber]);
+  }, [profile?.id, profile?.firstName, profile?.lastName, profile?.email, profile?.mobilePhoneNumber, user?.email, setValue]);
 
   useEffect(() => {
     return () => {
@@ -183,22 +203,24 @@ export default function ProfilePage() {
       const validation = validatePhoneNumber(truncated, null, {
         country: selectedCountry,
       });
-      setMobilePhoneNumber(validation.formatted);
+      setValue("mobilePhoneNumber", validation.formatted, { shouldValidate: true });
       setPhoneError(phoneTouched ? validation.errorMessage : null);
       return;
     }
     const validation = validatePhoneNumber(value, null, { country: selectedCountry });
-    setMobilePhoneNumber(validation.formatted);
+    setValue("mobilePhoneNumber", validation.formatted, { shouldValidate: true });
     if (!validation.formatted.trim()) setPhoneError(null);
     else if (phoneTouched) setPhoneError(validation.errorMessage);
+    void trigger("mobilePhoneNumber");
   };
 
   const handlePhoneBlur = () => {
     setPhoneTouched(true);
-    const validation = validatePhoneNumber(mobilePhoneNumber, null, {
+    const validation = validatePhoneNumber(getValues("mobilePhoneNumber"), null, {
       country: selectedCountry,
     });
     setPhoneError(validation.errorMessage);
+    void trigger("mobilePhoneNumber");
   };
 
   const handleCountryChange = (newCountry: CountryCode) => {
@@ -212,8 +234,9 @@ export default function ProfilePage() {
         const validation = validatePhoneNumber(truncatedDigits, null, {
           country: newCountry,
         });
-        setMobilePhoneNumber(validation.formatted);
+        setValue("mobilePhoneNumber", validation.formatted, { shouldValidate: true });
         setPhoneError(validation.errorMessage);
+        void trigger("mobilePhoneNumber");
       }
     }
   };
@@ -314,28 +337,37 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmitProfile = async (values: ProfileFormValues) => {
     if (!profile) return;
+    if (!values.email.trim()) {
+      toast.error("Email address is required.");
+      return;
+    }
 
-    const validation = validatePhoneNumber(mobilePhoneNumber, null, {
+    const validation = validatePhoneNumber(values.mobilePhoneNumber, null, {
       country: selectedCountry,
     });
-    if (mobilePhoneNumber.trim() && !validation.isValid) {
+    if (!values.mobilePhoneNumber.trim()) {
+      setPhoneTouched(true);
+      setPhoneError("Phone number is required.");
+      toast.error("Phone number is required.");
+      return;
+    }
+    if (!validation.isValid) {
       setPhoneTouched(true);
       setPhoneError(validation.errorMessage);
       toast.error(validation.errorMessage ?? "Please enter a valid phone number.");
       return;
     }
 
-    const digits = mobilePhoneNumber.replace(/\D/g, "");
+    const digits = values.mobilePhoneNumber.replace(/\D/g, "");
     const mobilePhoneNumberWithCountry = digits
       ? `+${countryInfo.dialCode} ${digits}`
       : undefined;
 
     const payload: UpdateProfileDto = {
-      firstName: firstName.trim() || undefined,
-      lastName: lastName.trim() || undefined,
+      firstName: values.firstName.trim() || undefined,
+      lastName: values.lastName.trim() || undefined,
       mobilePhoneNumber: mobilePhoneNumberWithCountry,
     };
     if (avatarRemoved) payload.avatar = null;
@@ -410,7 +442,6 @@ export default function ProfilePage() {
     );
   }
 
-  const email = profile?.email || user?.email || "";
   const profileMediaId = (profile as { media?: string })?.media;
   const userMediaId = (user as { media?: string })?.media;
   const currentAvatar = avatarRemoved
@@ -464,7 +495,7 @@ export default function ProfilePage() {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <form onSubmit={handleSubmit} className="p-8 sm:p-10">
+            <form onSubmit={handleSubmit(onSubmitProfile)} className="p-8 sm:p-10">
               <div className="flex flex-col items-center mb-10">
                 <div className="relative group">
                   {/* Relative container: clips blur and overlays to circle */}
@@ -593,57 +624,50 @@ export default function ProfilePage() {
 
               <div className="space-y-5 mb-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label
-                      htmlFor="profile-first-name"
-                      className="block text-sm font-medium text-gray-700 mb-1.5"
-                    >
-                      First name
-                    </label>
-                    <input
-                      id="profile-first-name"
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full px-4 py-2.5 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f8992f]/30 focus:border-[#f8992f] transition-colors"
-                      placeholder="First name"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="profile-last-name"
-                      className="block text-sm font-medium text-gray-700 mb-1.5"
-                    >
-                      Last name
-                    </label>
-                    <input
-                      id="profile-last-name"
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="w-full px-4 py-2.5 text-gray-900 placeholder-gray-400 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f8992f]/30 focus:border-[#f8992f] transition-colors"
-                      placeholder="Last name"
-                    />
-                  </div>
+                  <Input
+                    id="profile-first-name"
+                    type="text"
+                    label="First name"
+                    required
+                    error={errors.firstName?.message}
+                    className="py-2.5 text-gray-900 placeholder-gray-400 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f8992f]/30 focus:border-[#f8992f]"
+                    placeholder="First name"
+                    {...register("firstName", {
+                      required: "First name is required.",
+                    })}
+                  />
+                  <Input
+                    id="profile-last-name"
+                    type="text"
+                    label="Last name"
+                    required
+                    error={errors.lastName?.message}
+                    className="py-2.5 text-gray-900 placeholder-gray-400 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f8992f]/30 focus:border-[#f8992f]"
+                    placeholder="Last name"
+                    {...register("lastName", {
+                      required: "Last name is required.",
+                    })}
+                  />
                 </div>
                 <div>
-                  <label
-                    htmlFor="profile-email"
-                    className="block text-sm font-medium text-gray-700 mb-1.5"
-                  >
-                    Email
-                  </label>
-                  <input
+                  <Input
                     id="profile-email"
                     type="email"
+                    label="Email address"
+                    required
+                    error={errors.email?.message}
                     value={email}
                     readOnly
-                    className="w-full px-4 py-2.5 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg cursor-not-allowed"
+                    className="py-2.5 text-gray-500 bg-gray-50 border-gray-200 rounded-lg cursor-not-allowed focus:border-gray-200"
+                    {...register("email", {
+                      required: "Email address is required.",
+                    })}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Phone
+                    Phone number
+                    <span className="ml-1 text-red-500">*</span>
                   </label>
                   <div className="flex border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#f8992f]/30 focus-within:border-[#f8992f]">
                     <select
@@ -695,7 +719,7 @@ export default function ProfilePage() {
               <div className="pt-2 border-t border-gray-100">
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || !isValid || !!phoneError || !mobilePhoneNumber.trim()}
                   className="w-full py-3 px-4 bg-[#f8992f] hover:bg-[#e88a25] text-white font-semibold rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#f8992f]/40 focus:ring-offset-2"
                 >
                   {saving ? "Saving…" : "Save changes"}

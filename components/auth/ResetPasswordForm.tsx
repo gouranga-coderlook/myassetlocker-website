@@ -1,17 +1,23 @@
 // components/auth/ResetPasswordForm.tsx
 "use client";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { useAppDispatch } from "@/store/hooks";
 import { setLoading, hideAuthPopup } from "@/store/slices/authSlice";
 import { authService } from "@/lib/api/authService";
 import OTPInput from "./OTPInput";
-import PasswordInput from "./PasswordInput";
+import Input from "@/components/ui/Input";
 import toast from "react-hot-toast";
 
 interface ResetPasswordFormProps {
   email: string;
   onSwitchToLogin: () => void;
   isLoading: boolean;
+}
+
+interface ResetPasswordFormValues {
+  password: string;
+  confirmPassword: string;
 }
 
 export default function ResetPasswordForm({
@@ -21,10 +27,25 @@ export default function ResetPasswordForm({
 }: ResetPasswordFormProps) {
   const dispatch = useAppDispatch();
   const [otp, setOtp] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [step, setStep] = useState<"otp" | "password">("otp");
   const [otpError, setOtpError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const {
+    register,
+    watch,
+    clearErrors,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<ResetPasswordFormValues>({
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    },
+    mode: "onTouched",
+    reValidateMode: "onChange",
+  });
+  const password = watch("password");
 
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
@@ -50,28 +71,11 @@ export default function ResetPasswordForm({
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!password || !confirmPassword) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-
+  const onResetPassword = async (values: ResetPasswordFormValues) => {
     dispatch(setLoading(true));
 
     try {
-      await authService.resetPassword(email, otp, password);
+      await authService.resetPassword(email, otp, values.password);
       toast.success("Password reset successfully! Please login with your new password.");
       dispatch(hideAuthPopup());
       setTimeout(() => {
@@ -83,6 +87,10 @@ export default function ResetPasswordForm({
     } finally {
       dispatch(setLoading(false));
     }
+  };
+
+  const onInvalid = () => {
+    toast.error("Please fill in all required fields");
   };
 
   if (step === "otp") {
@@ -163,7 +171,7 @@ export default function ResetPasswordForm({
   }
 
   return (
-    <form onSubmit={handleResetPassword} className="space-y-4">
+    <form onSubmit={handleSubmit(onResetPassword, onInvalid)} noValidate className="space-y-4">
       <div className="text-center mb-4">
         <p className="text-sm text-gray-600">
           Please enter your new password
@@ -171,33 +179,87 @@ export default function ResetPasswordForm({
       </div>
 
       <div>
-        <PasswordInput
+        <Input
           id="reset-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={externalLoading}
-          required
-          minLength={6}
+          type={showPassword ? "text" : "password"}
           label="New Password"
+          onFocus={() => clearErrors("password")}
+          disabled={externalLoading}
+          placeholder="••••••••"
+          error={errors.password?.message}
+          {...register("password", {
+            required: "Password is required.",
+            minLength: {
+              value: 6,
+              message: "Password must be at least 6 characters.",
+            },
+            validate: (value) =>
+              value.trim().length > 0 || "Password is required.",
+          })}
+          rightAdornment={
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              disabled={externalLoading}
+              className="text-gray-500 hover:text-[#f8992f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18M10.584 10.587a3 3 0 004.243 4.243M9.88 9.88a3 3 0 014.243 4.243M6.53 6.53A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-4.163 5.357M6.53 6.53A9.97 9.97 0 002.457 12c1.274 4.057 5.064 7 9.543 7 1.61 0 3.13-.34 4.5-.953" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              )}
+            </button>
+          }
         />
         <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters</p>
       </div>
 
       <div>
-        <PasswordInput
+        <Input
           id="reset-confirm-password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          disabled={externalLoading}
-          required
-          minLength={6}
+          type={showConfirmPassword ? "text" : "password"}
           label="Confirm New Password"
+          onFocus={() => clearErrors("confirmPassword")}
+          disabled={externalLoading}
+          placeholder="••••••••"
+          error={errors.confirmPassword?.message}
+          {...register("confirmPassword", {
+            required: "Confirm password is required.",
+            validate: (value) =>
+              value === password || "Passwords do not match.",
+          })}
+          rightAdornment={
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
+              disabled={externalLoading}
+              className="text-gray-500 hover:text-[#f8992f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+              aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+            >
+              {showConfirmPassword ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18M10.584 10.587a3 3 0 004.243 4.243M9.88 9.88a3 3 0 014.243 4.243M6.53 6.53A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-4.163 5.357M6.53 6.53A9.97 9.97 0 002.457 12c1.274 4.057 5.064 7 9.543 7 1.61 0 3.13-.34 4.5-.953" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              )}
+            </button>
+          }
         />
       </div>
 
       <button
         type="submit"
-        disabled={externalLoading}
+        disabled={externalLoading || !isValid}
         className="w-full bg-gradient-to-r from-[#ea9637] to-[#FB9A2D] text-white font-bold py-3 px-4 rounded-xl hover:from-[#d8852a] hover:to-[#e88a25] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
       >
         {externalLoading ? (

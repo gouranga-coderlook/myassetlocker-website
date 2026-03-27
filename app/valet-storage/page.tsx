@@ -393,8 +393,8 @@ export default function ValetStorage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <a
-                href="/valet-storage/pickup"
+              <Link
+                href="/bookings"
                 className="card-modern p-8 hover-lift text-center group"
               >
                 <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-glow group-hover:scale-110 transition-transform">
@@ -409,10 +409,10 @@ export default function ValetStorage() {
                 <span className="text-primary-600 font-medium group-hover:text-primary-700">
                   Create Request →
                 </span>
-              </a>
+              </Link>
 
-              <a
-                href="/valet-storage/delivery"
+              <Link
+                href="/bookings"
                 className="card-modern p-8 hover-lift text-center group"
               >
                 <div className="w-16 h-16 gradient-secondary rounded-full flex items-center justify-center mx-auto mb-4 shadow-glow-secondary group-hover:scale-110 transition-transform">
@@ -427,10 +427,10 @@ export default function ValetStorage() {
                 <span className="text-secondary-600 font-medium group-hover:text-secondary-700">
                   Request Delivery →
                 </span>
-              </a>
+              </Link>
 
               <Link
-                href="/valet-storage/orders"
+                href="/bookings"
                 className="card-modern p-8 hover-lift text-center group"
               >
                 <div className="w-16 h-16 gradient-success rounded-full flex items-center justify-center mx-auto mb-4 shadow-glow group-hover:scale-110 transition-transform">

@@ -15,6 +15,7 @@ export interface CartItemDto {
   protectionPlanCost: number;
   savings: number;
   zoneDeliveryCharges: number;
+  warehouseId?: string | null;
   plan: {
     id: string;
     name: string;
@@ -120,6 +121,7 @@ export interface AddCartItemDto {
   };
   couponCode?: string | null;
   zoneDeliveryCharges?: number;
+  suggestedWarehouseId?: string;
 }
 
 export interface ApplyCouponDto {
@@ -238,6 +240,7 @@ export function transformCartItemDtoToBookingCart(cartItemDto: CartItemDto, cart
     locationData: null,
     couponCode: null, // Cart items don't have coupon code, it's at cart level
     zoneDeliveryCharges: cartItemDto.zoneDeliveryCharges ?? null,
+    warehouseId: cartItemDto.warehouseId ?? null,
     createdAt: cartItemDto.createdAt,
     updatedAt: cartItemDto.updatedAt,
     cartId: cartId,
@@ -291,6 +294,7 @@ export function transformCartDtoToBookingCart(cartDto: CartDto, plans: Plan[] = 
     locationData: null,
     couponCode: null,
     zoneDeliveryCharges: null,
+    warehouseId: null,
     createdAt: cartDto.createdAt,
     updatedAt: cartDto.updatedAt,
     cartId: cartDto.id,
@@ -337,6 +341,7 @@ export function transformBookingCartToAddCartItemDto(cart: BookingCart): AddCart
     protectionPlanCost: cart.protectionPlanCost,
     savings: cart.savings,
     zoneDeliveryCharges: cart.zoneDeliveryCharges ?? undefined,
+    suggestedWarehouseId: cart.warehouseId || cart.locationData?.nearestWarehouse?.id || undefined,
     planId: cart.plan?.id,
     bundleId: cart.bundles?.id || null,
     protectionPlanId,
@@ -477,6 +482,7 @@ export async function getUserCart(
           locationData: null,
           couponCode: null, // Cart items don't have coupon code
           zoneDeliveryCharges: cartItem.zoneDeliveryCharges ?? null,
+          warehouseId: cartItem.warehouseId ?? null,
           createdAt: cartItem.createdAt,
           updatedAt: cartItem.updatedAt,
           cartId: cartData.id,

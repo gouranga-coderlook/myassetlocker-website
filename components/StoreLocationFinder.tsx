@@ -358,6 +358,12 @@ export default function StoreLocationFinder() {
       latitude,
       longitude,
       addressDetails: address || null,
+      nearestWarehouse: {
+        id: store.id,
+        name: store.name
+      },
+      distanceMiles: kmToMiles(distanceKm),
+      distanceChargeSource: store.region === "usa" ? "delivery_zone" : "warehouse_distance_charges",
       nearestStore: store,
       distanceKm,
       deliveryCharge,

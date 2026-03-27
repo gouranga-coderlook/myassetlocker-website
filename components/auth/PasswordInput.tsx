@@ -7,6 +7,8 @@ interface PasswordInputProps {
   name?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   placeholder?: string;
   disabled?: boolean;
   required?: boolean;
@@ -21,6 +23,8 @@ export default function PasswordInput({
   name,
   value,
   onChange,
+  onBlur,
+  onFocus,
   placeholder = "••••••••",
   disabled = false,
   required = false,
@@ -52,6 +56,8 @@ export default function PasswordInput({
           name={name}
           value={value}
           onChange={onChange}
+          onBlur={onBlur}
+          onFocus={onFocus}
           disabled={disabled}
           className={`w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-[#f8992f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
           placeholder={placeholder}

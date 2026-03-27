@@ -1,15 +1,20 @@
 // components/auth/ForgotPasswordForm.tsx
 "use client";
-import { useState } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import { setLoading } from "@/store/slices/authSlice";
 import { authService } from "@/lib/api/authService";
 import toast from "react-hot-toast";
+import { useForm } from "react-hook-form";
+import Input from "@/components/ui/Input";
 
 interface ForgotPasswordFormProps {
   onSwitchToLogin: () => void;
   onSwitchToResetPassword: (email: string) => void;
   isLoading: boolean;
+}
+
+interface ForgotPasswordFormValues {
+  email: string;
 }
 
 export default function ForgotPasswordForm({
@@ -18,22 +23,24 @@ export default function ForgotPasswordForm({
   isLoading: externalLoading,
 }: ForgotPasswordFormProps) {
   const dispatch = useAppDispatch();
-  const [email, setEmail] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<ForgotPasswordFormValues>({
+    defaultValues: {
+      email: "",
+    },
+    mode: "onChange",
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!email) {
-      toast.error("Please enter your email address");
-      return;
-    }
-
+  const onSubmit = async (values: ForgotPasswordFormValues) => {
     dispatch(setLoading(true));
 
     try {
-      await authService.forgetPassword(email);
+      await authService.forgetPassword(values.email);
       toast.success("Password reset OTP sent to your email!");
-      onSwitchToResetPassword(email);
+      onSwitchToResetPassword(values.email);
     } catch (error: unknown) {
       const errorMessage = (error as { message?: string })?.message || "Failed to send reset email";
       toast.error(errorMessage);
@@ -43,35 +50,33 @@ export default function ForgotPasswordForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
       <div className="mb-4">
         <p className="text-sm text-gray-600">
           Enter your email address and we&apos;ll send you an OTP to reset your password.
         </p>
       </div>
 
-      <div>
-        <label
-          htmlFor="forgot-email"
-          className="block text-sm font-semibold text-gray-700 mb-2"
-        >
-          Email Address
-        </label>
-        <input
-          type="email"
-          id="forgot-email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={externalLoading}
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-[#f8992f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="you@example.com"
-          required
-        />
-      </div>
+      <Input
+        id="forgot-email"
+        type="email"
+        label="Email Address"
+        required
+        disabled={externalLoading}
+        placeholder="you@example.com"
+        error={errors.email?.message}
+        {...register("email", {
+          required: "Please enter your email address.",
+          pattern: {
+            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+            message: "Please enter a valid email address.",
+          },
+        })}
+      />
 
       <button
         type="submit"
-        disabled={externalLoading}
+        disabled={externalLoading || !isValid}
         className="w-full bg-gradient-to-r from-[#ea9637] to-[#FB9A2D] text-white font-bold py-3 px-4 rounded-xl hover:from-[#d8852a] hover:to-[#e88a25] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
       >
         {externalLoading ? (

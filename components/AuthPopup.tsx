@@ -25,6 +25,29 @@ export default function AuthPopup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const getPostLoginRedirectPath = (): string => {
+    if (typeof window === "undefined") return "/dashboard";
+
+    const fallbackPath = "/dashboard";
+    const storedReturnUrl = sessionStorage.getItem("authReturnUrl");
+    if (!storedReturnUrl) return fallbackPath;
+
+    sessionStorage.removeItem("authReturnUrl");
+
+    if (storedReturnUrl.startsWith("/")) return storedReturnUrl;
+
+    try {
+      const parsedUrl = new URL(storedReturnUrl);
+      if (parsedUrl.origin === window.location.origin) {
+        return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}` || fallbackPath;
+      }
+    } catch {
+      // Ignore malformed URLs and use fallback.
+    }
+
+    return fallbackPath;
+  };
+
   // Reset to login view when popup opens
   useEffect(() => {
     if (showAuthPopup) {
@@ -260,11 +283,10 @@ export default function AuthPopup() {
                             saveUser(user);
 
                             toast.success("Email verified! Welcome!");
-                            
-                            // Close popup after successful authentication
-                            setTimeout(() => {
-                              dispatch(hideAuthPopup());
-                            }, 500);
+
+                            const redirectPath = getPostLoginRedirectPath();
+                            dispatch(hideAuthPopup());
+                            router.push(redirectPath);
                           } catch (error: unknown) {
                             const errorMessage = (error as { message?: string })?.message || "Login failed";
                             toast.error(errorMessage);

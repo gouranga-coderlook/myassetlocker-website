@@ -38,11 +38,11 @@ export default function VerifyEmailForm({
 
     try {
       await authService.verifyEmail(email, otp);
-      toast.success("Email verified successfully!");
       // If onVerificationSuccess is provided, use it (auto-login), otherwise switch to login
       if (onVerificationSuccess) {
         onVerificationSuccess?.();
       } else {
+        toast.success("Email verified successfully!");
         onSwitchToLogin();
       }
     } catch (error: unknown) {

@@ -4,6 +4,7 @@ import authReducer from "./slices/authSlice";
 import profileReducer from "./slices/profileSlice";
 import pricingReducer from "./slices/pricingSlice";
 import cartReducer from "./slices/cartSlice";
+import warehouseReducer from "./slices/warehouseSlice";
 
 // Combine reducers
 const rootReducer = combineReducers({
@@ -11,6 +12,7 @@ const rootReducer = combineReducers({
     profile: profileReducer,
     pricing: pricingReducer,
     cart: cartReducer,
+    warehouses: warehouseReducer,
 });
 
 // Infer the RootState and AppDispatch types from the store itself

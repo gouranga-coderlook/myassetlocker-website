@@ -156,6 +156,14 @@ export default function UserMenu({ onMobileMenuClose }: UserMenuProps = {}) {
     }
   };
 
+  const handleDashboardClick = () => {
+    setIsOpen(false);
+    router.push("/dashboard");
+    if (onMobileMenuClose) {
+      onMobileMenuClose();
+    }
+  };
+
   // Never use direct API URL for server media ID (img would send no auth -> 401). Use blob or null.
   const avatarUrl = isServerMediaId
     ? (serverAvatarBlobUrl ?? null)
@@ -266,7 +274,28 @@ export default function UserMenu({ onMobileMenuClose }: UserMenuProps = {}) {
 
             {/* Menu Items */}
             <div className="px-2 py-2 border-t border-gray-200">
-              {/* Profile - first action (industry standard: account/profile before other actions) */}
+              {/* Dashboard */}
+              <button
+                onClick={handleDashboardClick}
+                className="w-full px-4 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 cursor-pointer"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 13h8V3H3v10zm10 8h8v-6h-8v6zm0-18v10h8V3h-8zM3 21h8v-6H3v6z"
+                  />
+                </svg>
+                <span>Dashboard</span>
+              </button>
+
+              {/* Profile */}
               <button
                 onClick={handleProfileClick}
                 className="w-full px-4 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 cursor-pointer"

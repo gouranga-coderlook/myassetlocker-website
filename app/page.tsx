@@ -6,7 +6,8 @@ import AppShowcase from "@/components/AppShowcase";
 import { useAuth } from "@/lib/hooks/useAuth";
 
 export default function Home() {
-  const { openAuthPopup } = useAuth();
+  const { openAuthPopup, isAuthenticated, authHydrated } = useAuth();
+  const getStartedHref = authHydrated && isAuthenticated ? "/dashboard" : undefined;
 
   useEffect(() => {
     // Check for auth popup flag from sessionStorage (set by 401 interceptor)
@@ -50,8 +51,9 @@ export default function Home() {
         ctaButton={{
           enabled: true,
           text: "GET STARTED",
-          href: "https://apps.apple.com/app/myassetlocker",
-          openInNewTab: true,
+          href: getStartedHref,
+          onClick: authHydrated && !isAuthenticated ? openAuthPopup : undefined,
+          openInNewTab: false,
         }}
         isHomePage={true}
       />

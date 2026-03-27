@@ -1,5 +1,17 @@
 "use client";
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import Input from '@/components/ui/Input';
+
+interface BookingFormValues {
+  // Step 2 requirement: must select storage duration (bins optional)
+  months: number | null;
+  // Step 4 requirement: contact fields
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+}
 
 interface BookingData {
   planType: 'prepaid' | 'monthly';
@@ -41,6 +53,24 @@ const ValetStorageBooking = () => {
     phoneNumber: '',
     firstName: '',
     lastName: ''
+  });
+
+  const {
+    register,
+    trigger,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<BookingFormValues>({
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
+    defaultValues: {
+      months: null,
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+    },
   });
 
   // Pricing matrices - used for calculating storage costs
@@ -92,6 +122,7 @@ const ValetStorageBooking = () => {
         deliveryFee: 0,
         savings: 0
       }));
+      setValue('months', 4, { shouldValidate: true, shouldDirty: true });
       setCurrentStep(4);
     } else if (type === 'ski') {
       setBookingData(prev => ({
@@ -103,12 +134,14 @@ const ValetStorageBooking = () => {
         deliveryFee: 0,
         savings: 0
       }));
+      setValue('months', 6, { shouldValidate: true, shouldDirty: true });
       setCurrentStep(4);
     }
   };
 
   const selectMonths = (months: number) => {
     setBookingData(prev => ({ ...prev, months }));
+    setValue('months', months, { shouldValidate: true, shouldDirty: true });
   };
 
   const selectBins = (bins: number) => {
@@ -116,9 +149,11 @@ const ValetStorageBooking = () => {
   };
 
   const nextStep = () => {
-    if (validateCurrentStep()) {
+    void (async () => {
+      if (await validateCurrentStep()) {
       setCurrentStep(prev => Math.min(4, prev + 1));
-    }
+      }
+    })();
   };
 
   const previousStep = () => {
@@ -127,33 +162,12 @@ const ValetStorageBooking = () => {
     }
   };
 
-  const validateCurrentStep = () => {
+  const validateCurrentStep = async () => {
     if (currentStep === 2) {
-      if (!bookingData.months) {
-        alert('Please select a storage duration (bins are optional).');
-        return false;
-      }
-      return true;
+      return await trigger('months');
     }
     if (currentStep === 4) {
-      if (!bookingData.email || !bookingData.phoneNumber || !bookingData.firstName || !bookingData.lastName) {
-        alert('Please fill in all required contact information before completing your booking.');
-        return false;
-      }
-      // Basic email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(bookingData.email)) {
-        alert('Please enter a valid email address.');
-        return false;
-      }
-      // Basic phone validation (at least 10 digits)
-      const phoneRegex = /^\d{10,}$/;
-      const cleanPhone = bookingData.phoneNumber.replace(/\D/g, '');
-      if (!phoneRegex.test(cleanPhone)) {
-        alert('Please enter a valid phone number (at least 10 digits).');
-        return false;
-      }
-      return true;
+      return await trigger(['firstName', 'lastName', 'email', 'phoneNumber']);
     }
     return true;
   };
@@ -300,6 +314,8 @@ const ValetStorageBooking = () => {
       <div className="mb-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Storage Duration</h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {/* Registered field for step 2 validation (months must be selected). */}
+          <input type="hidden" {...register('months', { required: 'Please select a storage duration.' })} />
           {[
             { months: 1, label: '1 Month', popular: false },
             { months: 3, label: '3 Months', popular: false },
@@ -328,6 +344,12 @@ const ValetStorageBooking = () => {
             </div>
           ))}
         </div>
+
+        {errors.months?.message && (
+          <p className="mt-3 text-sm text-red-600" role="alert">
+            {errors.months.message}
+          </p>
+        )}
       </div>
 
       {/* Bin Selection */}
@@ -496,58 +518,64 @@ const ValetStorageBooking = () => {
           
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                First Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={bookingData.firstName}
-                onChange={(e) => setBookingData(prev => ({ ...prev, firstName: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              <Input
+                label="First Name"
                 placeholder="Enter your first name"
                 required
+                type="text"
+                error={errors.firstName?.message}
+                {...register('firstName', {
+                  required: 'First name is required.',
+                  validate: (v) => v.trim().length > 0 || 'First name is required.',
+                })}
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Last Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={bookingData.lastName}
-                onChange={(e) => setBookingData(prev => ({ ...prev, lastName: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              <Input
+                label="Last Name"
                 placeholder="Enter your last name"
                 required
+                type="text"
+                error={errors.lastName?.message}
+                {...register('lastName', {
+                  required: 'Last name is required.',
+                  validate: (v) => v.trim().length > 0 || 'Last name is required.',
+                })}
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                value={bookingData.email}
-                onChange={(e) => setBookingData(prev => ({ ...prev, email: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              <Input
+                label="Email Address"
                 placeholder="Enter your email address"
                 required
+                type="email"
+                error={errors.email?.message}
+                {...register('email', {
+                  required: 'Email is required.',
+                  validate: (v) => {
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    return emailRegex.test(v) || 'Please enter a valid email address.';
+                  },
+                })}
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="tel"
-                value={bookingData.phoneNumber}
-                onChange={(e) => setBookingData(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              <Input
+                label="Phone Number"
                 placeholder="(555) 123-4567"
                 required
+                type="tel"
+                error={errors.phoneNumber?.message}
+                {...register('phoneNumber', {
+                  required: 'Phone number is required.',
+                  validate: (v) => {
+                    const cleanPhone = v.replace(/\D/g, '');
+                    return cleanPhone.length >= 10 || 'Please enter a valid phone number (at least 10 digits).';
+                  },
+                })}
               />
             </div>
           </div>
@@ -790,21 +818,28 @@ const ValetStorageBooking = () => {
 
               {currentStep < 4 ? (
                 <button
-                  onClick={nextStep}
+          onClick={() => {
+            void nextStep();
+          }}
                   className="px-8 py-3 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium transition-all shadow-sm cursor-pointer"
                 >
                   Continue →
                 </button>
               ) : (
-                <button
-                  onClick={() => {
-                    alert("Booking submitted! Check console for details.");
-                    console.log("BOOKING_DATA", bookingData);
-                  }}
-                  className="px-8 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-all shadow-sm cursor-pointer"
-                >
-                  Complete Booking
-                </button>
+        <button
+          onClick={handleSubmit((values) => {
+            setBookingData(prev => ({
+              ...prev,
+              firstName: values.firstName,
+              lastName: values.lastName,
+              email: values.email,
+              phoneNumber: values.phoneNumber,
+            }));
+          })}
+          className="px-8 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-medium transition-all shadow-sm cursor-pointer"
+        >
+          Complete Booking
+        </button>
               )}
             </div>
           </div>

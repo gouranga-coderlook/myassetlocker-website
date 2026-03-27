@@ -9,6 +9,14 @@ import type { Booking, BookingItem } from "@/lib/api/bookingService";
 import toast from "react-hot-toast";
 import AuthLoadingView from "@/components/AuthLoadingView";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useForm } from "react-hook-form";
+import Input from "@/components/ui/Input";
+
+interface DeliveryFormValues {
+  selectedBookingId: string;
+  deliveryAddress: string;
+  notes: string;
+}
 
 export default function CreateDeliveryRequestPage() {
   const router = useRouter();
@@ -19,10 +27,24 @@ export default function CreateDeliveryRequestPage() {
 
   const [loading, setLoading] = useState(false);
   const [storedBookings, setStoredBookings] = useState<Booking[]>([]);
-  const [selectedBookingId, setSelectedBookingId] = useState("");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [notes, setNotes] = useState("");
   const [loadingBookings, setLoadingBookings] = useState(true);
+  const {
+    register,
+    setValue,
+    watch,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<DeliveryFormValues>({
+    defaultValues: {
+      selectedBookingId: "",
+      deliveryAddress: "",
+      notes: "",
+    },
+    mode: "onChange",
+  });
+
+  const selectedBookingId = watch("selectedBookingId");
+  const deliveryAddress = watch("deliveryAddress");
 
   useEffect(() => {
     if (!authHydrated || userId) return;
@@ -58,7 +80,7 @@ export default function CreateDeliveryRequestPage() {
       if (bookingIdFromQuery) {
         const bookingExists = stored.find((b) => b.id === bookingIdFromQuery);
         if (bookingExists) {
-          setSelectedBookingId(bookingIdFromQuery);
+          setValue("selectedBookingId", bookingIdFromQuery, { shouldValidate: true });
           // Pre-fill delivery address from booking if available
           if (bookingExists.deliveryInfo?.address) {
             const addressParts = [
@@ -67,7 +89,7 @@ export default function CreateDeliveryRequestPage() {
               bookingExists.deliveryInfo.state,
               bookingExists.deliveryInfo.zipCode,
             ].filter(Boolean);
-            setDeliveryAddress(addressParts.join(", "));
+            setValue("deliveryAddress", addressParts.join(", "), { shouldValidate: true });
           }
         } else {
           toast.error("Selected booking not found or not stored yet.");
@@ -84,20 +106,18 @@ export default function CreateDeliveryRequestPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const onSubmit = async (values: DeliveryFormValues) => {
     if (!userId) {
       toast.error("Please login to create a delivery request");
       return;
     }
 
-    if (!selectedBookingId) {
+    if (!values.selectedBookingId) {
       toast.error("Please select a stored booking to deliver");
       return;
     }
 
-    if (!deliveryAddress) {
+    if (!values.deliveryAddress.trim()) {
       toast.error("Please provide a delivery address");
       return;
     }
@@ -107,16 +127,16 @@ export default function CreateDeliveryRequestPage() {
     try {
       const request: CreateDeliveryRequest = {
         userId,
-        parentBookingId: selectedBookingId,
-        address: deliveryAddress,
-        notes: notes || undefined,
+        parentBookingId: values.selectedBookingId,
+        address: values.deliveryAddress,
+        notes: values.notes?.trim() ? values.notes : undefined,
       };
 
       const response = await valetStorageService.createDeliveryRequest(request);
       
       toast.success("Delivery request created successfully!");
       // Navigate to bookings page or the new delivery booking
-      router.push(`/bookings/${response.orderId || selectedBookingId}`);
+      router.push(`/bookings/${response.orderId || values.selectedBookingId}`);
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to create delivery request");
     } finally {
@@ -157,7 +177,7 @@ export default function CreateDeliveryRequestPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
           {/* Select Stored Booking */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -203,7 +223,12 @@ export default function CreateDeliveryRequestPage() {
                         name="bookingId"
                         value={booking.id}
                         checked={selectedBookingId === booking.id}
-                        onChange={(e) => setSelectedBookingId(e.target.value)}
+                        onChange={(e) =>
+                          setValue("selectedBookingId", e.target.value, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          })
+                        }
                         className="mt-1 mr-3"
                       />
                       <div className="flex-1">
@@ -237,20 +262,35 @@ export default function CreateDeliveryRequestPage() {
                 ))}
               </div>
             )}
+            {errors.selectedBookingId?.message && (
+              <p className="mt-2 text-sm text-red-600" role="alert">
+                {errors.selectedBookingId.message}
+              </p>
+            )}
+            <input
+              type="hidden"
+              {...register("selectedBookingId", {
+                required: "Please select a stored booking to deliver.",
+              })}
+            />
           </div>
 
           {/* Delivery Address */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Delivery Address <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={deliveryAddress}
-              onChange={(e) => setDeliveryAddress(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              rows={3}
-              placeholder="Enter the delivery address..."
+            <Input
+              id="delivery-address"
+              type="text"
+              label="Delivery Address"
               required
+              placeholder="Enter the delivery address..."
+              error={errors.deliveryAddress?.message}
+              {...register("deliveryAddress", {
+                required: "Please provide a delivery address.",
+                minLength: {
+                  value: 5,
+                  message: "Delivery address is too short.",
+                },
+              })}
             />
           </div>
 
@@ -260,8 +300,7 @@ export default function CreateDeliveryRequestPage() {
               Additional Notes (Optional)
             </label>
             <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              {...register("notes")}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               rows={3}
               placeholder="Any special instructions or notes..."
@@ -297,8 +336,8 @@ export default function CreateDeliveryRequestPage() {
             </button>
             <button
               type="submit"
-              disabled={loading || !selectedBookingId || !deliveryAddress || storedBookings.length === 0}
-              className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading || !isValid || storedBookings.length === 0 || loadingBookings}
+              className="px-6 py-3 border border-gray-300 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Creating..." : "Create Delivery Request"}
             </button>

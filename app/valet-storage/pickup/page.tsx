@@ -10,6 +10,15 @@ import toast from "react-hot-toast";
 import Hero from "@/components/Hero";
 import AuthLoadingView from "@/components/AuthLoadingView";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useForm } from "react-hook-form";
+import Input from "@/components/ui/Input";
+
+interface PickupFormValues {
+  selectedDate: string;
+  selectedTimeSlotId: string;
+  pickupAddress: string;
+  notes: string;
+}
 
 export default function CreatePickupRequestPage() {
   const router = useRouter();
@@ -22,17 +31,31 @@ export default function CreatePickupRequestPage() {
   const [loading, setLoading] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [loadingBooking, setLoadingBooking] = useState(false);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTimeSlotId, setSelectedTimeSlotId] = useState("");
   const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
   const [bookingId, setBookingId] = useState("");
   const [booking, setBooking] = useState<Booking | null>(null);
-  const [pickupAddress, setPickupAddress] = useState("");
-  const [notes, setNotes] = useState("");
   const [customItems, setCustomItems] = useState<OrderItem[]>([
     { itemId: "", description: "", quantity: 1 },
   ]);
   const [showItems, setShowItems] = useState(false);
+  const {
+    register,
+    setValue,
+    watch,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<PickupFormValues>({
+    defaultValues: {
+      selectedDate: "",
+      selectedTimeSlotId: "",
+      pickupAddress: "",
+      notes: "",
+    },
+    mode: "onChange",
+  });
+
+  const selectedDate = watch("selectedDate");
+  const selectedTimeSlotId = watch("selectedTimeSlotId");
 
   /*
    * Auth and routing flow (industry-standard: single message, single redirect, no flash):
@@ -78,7 +101,7 @@ export default function CreatePickupRequestPage() {
             bookingData.deliveryInfo.state,
             bookingData.deliveryInfo.zipCode,
           ].filter(Boolean);
-          setPickupAddress(addressParts.join(", "));
+          setValue("pickupAddress", addressParts.join(", "), { shouldValidate: true });
         }
       }
     } catch (error) {
@@ -95,9 +118,9 @@ export default function CreatePickupRequestPage() {
       fetchAvailableTimeSlots(selectedDate);
     } else {
       setAvailableTimeSlots([]);
-      setSelectedTimeSlotId("");
+      setValue("selectedTimeSlotId", "", { shouldValidate: true });
     }
-  }, [selectedDate]);
+  }, [selectedDate, setValue]);
 
   const fetchAvailableTimeSlots = async (date: string) => {
     try {
@@ -196,9 +219,7 @@ export default function CreatePickupRequestPage() {
     setCustomItems(updated);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const onSubmit = async (values: PickupFormValues) => {
     if (!userId) {
       toast.error("Please login to create a pickup request");
       return;
@@ -211,18 +232,18 @@ export default function CreatePickupRequestPage() {
     }
 
     // Validate date and time slot
-    if (!selectedDate) {
+    if (!values.selectedDate) {
       toast.error("Please select a preferred pickup date");
       return;
     }
 
-    if (!selectedTimeSlotId) {
+    if (!values.selectedTimeSlotId) {
       toast.error("Please select a preferred pickup time slot");
       return;
     }
 
     // Find selected time slot
-    const selectedSlot = availableTimeSlots.find(slot => slot.id === selectedTimeSlotId);
+    const selectedSlot = availableTimeSlots.find(slot => slot.id === values.selectedTimeSlotId);
     if (!selectedSlot) {
       toast.error("Selected time slot is no longer available. Please select another.");
       return;
@@ -243,7 +264,7 @@ export default function CreatePickupRequestPage() {
 
     try {
       // Build notes with custom items if custom plan
-      let finalNotes = notes;
+      let finalNotes = values.notes;
       if (isCustomPlan() && customItems.length > 0) {
         const validItems = customItems.filter(
           (item) => item.description.trim() !== "" && item.quantity > 0
@@ -252,17 +273,17 @@ export default function CreatePickupRequestPage() {
           const itemsList = validItems.map((item, idx) => 
             `${idx + 1}. ${item.description} (Qty: ${item.quantity}${item.itemId ? `, ID: ${item.itemId}` : ""})`
           ).join("\n");
-          finalNotes = notes 
-            ? `${notes}\n\nItems to Pickup:\n${itemsList}`
+          finalNotes = values.notes
+            ? `${values.notes}\n\nItems to Pickup:\n${itemsList}`
             : `Items to Pickup:\n${itemsList}`;
         }
       }
 
       const request: CreatePickupRequest = {
         bookingId,
-        address: pickupAddress || undefined,
+        address: values.pickupAddress || undefined,
         notes: finalNotes || undefined,
-        slotId: selectedTimeSlotId, // Send slotId to update booking table
+        slotId: values.selectedTimeSlotId, // Send slotId to update booking table
       };
 
       const response = await valetStorageService.createPickupRequest(request);
@@ -334,7 +355,7 @@ export default function CreatePickupRequestPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 md:p-8">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 md:p-8">
           {/* Booking ID (Required) */}
           {bookingId && (
             <div className="mb-6">
@@ -529,16 +550,16 @@ export default function CreatePickupRequestPage() {
 
           {/* Preferred Pickup Date - Mandatory */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Preferred Pickup Date <span className="text-red-500">*</span>
-            </label>
-            <input
+            <Input
+              id="preferred-pickup-date"
               type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              min={getMinDate()}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f]"
+              label="Preferred Pickup Date"
               required
+              min={getMinDate()}
+              error={errors.selectedDate?.message}
+              {...register("selectedDate", {
+                required: "Please select a preferred pickup date.",
+              })}
             />
             <p className="mt-1 text-sm text-gray-500">
               Select your preferred pickup date. Available time slots will be shown below.
@@ -584,7 +605,13 @@ export default function CreatePickupRequestPage() {
                       <button
                         key={slot.id}
                         type="button"
-                        onClick={() => !isDisabled && setSelectedTimeSlotId(slot.id)}
+                        onClick={() =>
+                          !isDisabled &&
+                          setValue("selectedTimeSlotId", slot.id, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          })
+                        }
                         disabled={isDisabled}
                         className={`p-4 rounded-lg border-2 text-left transition-all ${
                           isSelected
@@ -623,20 +650,28 @@ export default function CreatePickupRequestPage() {
                   ✓ Time slot selected: {formatTimeSlot(availableTimeSlots.find(s => s.id === selectedTimeSlotId)!)}
                 </p>
               )}
+              {errors.selectedTimeSlotId?.message && (
+                <p className="mt-2 text-sm text-red-600" role="alert">
+                  {errors.selectedTimeSlotId.message}
+                </p>
+              )}
+              <input
+                type="hidden"
+                {...register("selectedTimeSlotId", {
+                  required: "Please select a preferred pickup time slot.",
+                })}
+              />
             </div>
           )}
 
           {/* Pickup Address */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Pickup Address (Optional)
-            </label>
-            <textarea
-              value={pickupAddress}
-              onChange={(e) => setPickupAddress(e.target.value)}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f]"
+            <Input
+              id="pickup-address"
+              type="text"
+              label="Pickup Address (Optional)"
               placeholder="Enter the address where items should be picked up (if different from booking address)"
+              {...register("pickupAddress")}
             />
             <p className="mt-1 text-sm text-gray-500">
               If not provided, we&apos;ll use the address from your booking
@@ -649,8 +684,7 @@ export default function CreatePickupRequestPage() {
               Additional Notes (Optional)
             </label>
             <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              {...register("notes")}
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f]"
               placeholder="Any special instructions or notes for the pickup team"
@@ -686,7 +720,7 @@ export default function CreatePickupRequestPage() {
             </button>
             <button
               type="submit"
-              disabled={loading || !selectedDate || !selectedTimeSlotId}
+              disabled={loading || !isValid}
               className="px-6 py-3 bg-gradient-to-r from-[#ea9637] to-[#FB9A2D] hover:from-[#d8852a] hover:to-[#e88a25] text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
             >
               {loading ? (

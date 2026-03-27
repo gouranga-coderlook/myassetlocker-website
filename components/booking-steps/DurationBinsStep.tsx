@@ -1,5 +1,6 @@
 "use client";
-import { useMemo } from "react";
+import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import type { Plan } from "@/store/slices/pricingSlice";
 
 interface DurationBinsStepProps {
@@ -10,6 +11,7 @@ interface DurationBinsStepProps {
   readonly prepaidPlan?: Plan;
   readonly monthToMonthPlan?: Plan;
   readonly currentPlan?: Plan | null; // Full plan object
+  readonly durationError?: string | null;
 }
 
 export default function DurationBinsStep({
@@ -20,9 +22,67 @@ export default function DurationBinsStep({
   prepaidPlan,
   monthToMonthPlan,
   currentPlan,
+  durationError,
 }: DurationBinsStepProps) {
   // Get the currently selected plan - use currentPlan if available, otherwise fallback to prepaidPlan
   const selectedPlan = currentPlan || prepaidPlan;
+  const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
+  const [zoomScale, setZoomScale] = useState(1);
+  const [isModalImageLoading, setIsModalImageLoading] = useState(false);
+  const binImages = [
+    {
+      src: "/Bin%20-%20inside%20view.jpg.jpeg",
+      alt: "Inside view of storage bin",
+    },
+    {
+      src: "/Bin%20-%20side%20view%20-%20cropped.jpg.jpeg",
+      alt: "Side view of storage bin",
+    },
+    {
+      src: "/Filled%20Tote%20bin.png",
+      alt: "Example of filled storage tote bin",
+    },
+    {
+      src: "/filled%20bin%202.png",
+      alt: "Filled bin with mixed items",
+    },
+    {
+      src: "/Filled%20Tote%20bin%203.png",
+      alt: "Filled tote bin with household storage items",
+    },
+  ] as const;
+
+  useEffect(() => {
+    if (activeImageIndex === null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActiveImageIndex(null);
+        setZoomScale(1);
+        setIsModalImageLoading(false);
+      } else if (event.key === "+") {
+        setZoomScale((prev) => Math.min(3, Number((prev + 0.25).toFixed(2))));
+      } else if (event.key === "-") {
+        setZoomScale((prev) => Math.max(0.25, Number((prev - 0.25).toFixed(2))));
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [activeImageIndex]);
+
+  useEffect(() => {
+    if (activeImageIndex === null) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [activeImageIndex]);
 
   // Extract available months and bins from the selected plan's pricing matrix
   const { availableMonths, availableBins } = useMemo(() => {
@@ -135,6 +195,8 @@ export default function DurationBinsStep({
                     selectedMonths === months
                       ? "border-[#f8992f] text-[#f8992f]"
                       : "border-gray-200 text-gray-700 hover:border-[#f8992f]"
+                  } ${
+                    selectedMonths !== months && durationError ? "border-red-400" : ""
                   }`}
                 >
                   {/* Discount badge in top right corner */}
@@ -151,6 +213,9 @@ export default function DurationBinsStep({
               );
             })}
           </div>
+          {durationError && (
+            <p className="mt-2 text-sm text-red-600">{durationError}</p>
+          )}
         </div>
       )}
 
@@ -193,6 +258,204 @@ export default function DurationBinsStep({
           <small className="text-gray-500 mt-3 block">
             You can choose 0 bins and select bulky items in the next step.
           </small>
+
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <h4 className="mb-2 text-sm font-semibold text-amber-900">What fits in one bin?</h4>
+            <p className="text-sm text-amber-800">
+              One standard tote bin is roughly 27 gallons (30.6 x 20.6 x 14.3 inches) and is best for
+              folded clothes, shoes, books, toys, and small household items. Use bins for compact items;
+              add bulky items separately in the next step.
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveImageIndex(0);
+                  setZoomScale(1);
+                  setIsModalImageLoading(true);
+                }}
+                className="overflow-hidden rounded-lg bg-white p-2 text-left"
+              >
+                <Image
+                  src={binImages[0].src}
+                  alt={binImages[0].alt}
+                  width={900}
+                  height={600}
+                  className="h-36 w-full rounded object-cover"
+                />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveImageIndex(1);
+                  setZoomScale(1);
+                  setIsModalImageLoading(true);
+                }}
+                className="overflow-hidden rounded-lg bg-white p-2 text-left"
+              >
+                <Image
+                  src={binImages[1].src}
+                  alt={binImages[1].alt}
+                  width={900}
+                  height={600}
+                  className="h-36 w-full rounded object-cover"
+                />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveImageIndex(2);
+                  setZoomScale(1);
+                  setIsModalImageLoading(true);
+                }}
+                className="overflow-hidden rounded-lg bg-white p-2 text-left"
+              >
+                <Image
+                  src={binImages[2].src}
+                  alt={binImages[2].alt}
+                  width={900}
+                  height={600}
+                  className="h-36 w-full rounded object-cover"
+                />
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-gray-600">
+              Real bin examples: empty bin dimensions and how everyday household items fit inside.
+            </p>
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveImageIndex(3);
+                  setZoomScale(1);
+                  setIsModalImageLoading(true);
+                }}
+                className="overflow-hidden rounded-lg bg-white p-2 text-left"
+              >
+                <Image
+                  src={binImages[3].src}
+                  alt={binImages[3].alt}
+                  width={900}
+                  height={600}
+                  className="h-36 w-full rounded object-cover"
+                />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveImageIndex(4);
+                  setZoomScale(1);
+                  setIsModalImageLoading(true);
+                }}
+                className="overflow-hidden rounded-lg bg-white p-2 text-left"
+              >
+                <Image
+                  src={binImages[4].src}
+                  alt={binImages[4].alt}
+                  width={900}
+                  height={600}
+                  className="h-36 w-full rounded object-cover"
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {activeImageIndex !== null && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => {
+            setActiveImageIndex(null);
+            setZoomScale(1);
+            setIsModalImageLoading(false);
+          }}
+        >
+          <div
+            className="relative w-full max-w-5xl rounded-lg bg-[#111111] p-3"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm text-white/90">
+                Click outside to close. Use + / - buttons to zoom.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setZoomScale((prev) => Math.max(0.25, Number((prev - 0.25).toFixed(2))))
+                  }
+                  className="rounded bg-white/15 px-3 py-1 text-white hover:bg-white/25"
+                >
+                  -
+                </button>
+                <span className="min-w-14 text-center text-sm text-white">
+                  {Math.round(zoomScale * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setZoomScale((prev) => Math.min(3, Number((prev + 0.25).toFixed(2))))
+                  }
+                  className="rounded bg-white/15 px-3 py-1 text-white hover:bg-white/25"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoomScale(1)}
+                  className="rounded bg-white/15 px-3 py-1 text-white hover:bg-white/25"
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveImageIndex(null);
+                    setZoomScale(1);
+                    setIsModalImageLoading(false);
+                  }}
+                  className="rounded bg-white/15 px-3 py-1 text-white hover:bg-white/25"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <div
+              className="relative flex max-h-[75vh] items-center justify-center overflow-auto rounded bg-black"
+              onWheel={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setZoomScale((prev) => {
+                  const direction = event.deltaY > 0 ? -1 : 1;
+                  const next = prev + direction * 0.1;
+                  return Math.max(0.25, Math.min(3, Number(next.toFixed(2))));
+                });
+              }}
+            >
+              {isModalImageLoading && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+                  <div className="flex items-center gap-2 rounded bg-black/60 px-4 py-2 text-sm text-white">
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Loading image...
+                  </div>
+                </div>
+              )}
+              <Image
+                src={binImages[activeImageIndex].src}
+                alt={binImages[activeImageIndex].alt}
+                width={1400}
+                height={900}
+                className={`h-auto max-h-[72vh] w-auto max-w-full rounded ${
+                  zoomScale > 1 ? "cursor-zoom-out" : "cursor-zoom-in"
+                }`}
+                style={{ transform: `scale(${zoomScale})`, transformOrigin: "center center" }}
+                onLoadingComplete={() => setIsModalImageLoading(false)}
+                onClick={() => {
+                  setZoomScale((prev) => (prev > 1 ? 1 : 1.5));
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
 

@@ -3,6 +3,7 @@
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setProfilePhoneCountryCode } from "@/store/slices/profileSlice";
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useForm } from "react-hook-form";
 import {
   validatePhoneNumber,
   detectCountryFromLocation,
@@ -11,6 +12,7 @@ import {
   type CountryCode,
 } from "@/lib/utils/phoneValidation";
 import { findAddress, type AddressSuggestion } from "@/lib/api/addressService";
+import Input from "@/components/ui/Input";
 
 interface DeliveryInformationStepProps {
   fullName: string;
@@ -29,6 +31,21 @@ interface DeliveryInformationStepProps {
   setZipCode: (zipCode: string) => void;
   deliveryNotes: string;
   setDeliveryNotes: (notes: string) => void;
+  country: string;
+  setCountry: (country: string) => void;
+  isResolvingDeliveryPricing: boolean;
+  onWarehouseSelect: (warehouseId: string) => void;
+}
+
+interface DeliveryInformationFormValues {
+  fullName: string;
+  email: string;
+  phone: string;
+  deliveryAddress: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
 }
 
 export default function DeliveryInformationStep({
@@ -48,15 +65,36 @@ export default function DeliveryInformationStep({
   setZipCode,
   deliveryNotes,
   setDeliveryNotes,
+  country,
+  setCountry,
+  isResolvingDeliveryPricing,
+  onWarehouseSelect,
 }: DeliveryInformationStepProps) {
   const dispatch = useAppDispatch();
   // Fetch location data to auto-fill address fields if available
   const locationData = useAppSelector((storeState) => storeState.cart.locationData);
   // Full name, phone country code, and national phone number from profile store
   const profile = useAppSelector((storeState) => storeState.profile.profileData);
-  const displayFullName = fullName || profile?.fullName || "";
   const profilePhoneCountryCode = profile?.phoneCountryCode;
-  const displayPhone = phone || profile?.phoneNumber || "";
+  const initializedFromProfileRef = useRef(false);
+  const {
+    register,
+    setValue,
+    trigger,
+    formState: { errors },
+  } = useForm<DeliveryInformationFormValues>({
+    defaultValues: {
+      fullName: fullName || "",
+      email: email || "",
+      phone: phone || "",
+      deliveryAddress: deliveryAddress || "",
+      city: city || "",
+      state: state || "",
+      zipCode: zipCode || "",
+    },
+    mode: "onTouched",
+    reValidateMode: "onChange",
+  });
   
   // Phone validation state
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -69,6 +107,7 @@ export default function DeliveryInformationStep({
   const addressInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasUserEditedAddressRef = useRef(false);
   
   // Detect country from location data (initial/default)
   const defaultCountry = useMemo(() => {
@@ -120,10 +159,12 @@ export default function DeliveryInformationStep({
     return countryInfo.name;
   }, [countryInfo]);
   
-  // Note: No longer loading from Redux - using props from parent component (local state) only
-  
   // Auto-fill address fields from location data if available (only once)
   useEffect(() => {
+    if (hasUserEditedAddressRef.current) {
+      return;
+    }
+
     if (locationData?.addressDetails && !deliveryAddress && !city && !state && !zipCode) {
       const address = locationData.addressDetails;
       if (address.street && address.street !== 'Not available') {
@@ -142,11 +183,31 @@ export default function DeliveryInformationStep({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationData]);
   
-  // Note: No Redux updates - parent component manages state via props
-  const handleFieldChange = (_field: string, _value: string) => {
-    console.log(`Field ${_field} changed to: ${_value}`);
-    // No-op: parent component handles state updates via setter props
-  };
+
+  useEffect(() => {
+    if (initializedFromProfileRef.current) return;
+    if (!profile) return;
+
+    if (!fullName && profile.fullName) {
+      setFullName(profile.fullName);
+      setValue("fullName", profile.fullName, { shouldValidate: true });
+    }
+    if (!phone && profile.phoneNumber) {
+      setPhone(profile.phoneNumber);
+      setValue("phone", profile.phoneNumber, { shouldValidate: true });
+    }
+    initializedFromProfileRef.current = true;
+  }, [profile, fullName, phone, setFullName, setPhone, setValue]);
+
+  useEffect(() => {
+    setValue("fullName", fullName || "", { shouldValidate: true });
+    setValue("email", email || "", { shouldValidate: true });
+    setValue("phone", phone || "", { shouldValidate: true });
+    setValue("deliveryAddress", deliveryAddress || "", { shouldValidate: true });
+    setValue("city", city || "", { shouldValidate: true });
+    setValue("state", state || "", { shouldValidate: true });
+    setValue("zipCode", zipCode || "", { shouldValidate: true });
+  }, [fullName, email, phone, deliveryAddress, city, state, zipCode, setValue]);
 
   // Address autocomplete search function with debouncing
   const searchAddresses = useCallback(async (query: string) => {
@@ -178,17 +239,18 @@ export default function DeliveryInformationStep({
 
   // Handle street address input change with debounced search
   const handleAddressInputChange = (value: string) => {
+    hasUserEditedAddressRef.current = true;
     setDeliveryAddress(value);
-    handleFieldChange('deliveryAddress', value);
+    setValue("deliveryAddress", value, { shouldValidate: true, shouldDirty: true });
 
     // When street address is blank, clear dependent address fields (industry standard)
     if (!value.trim()) {
       setCity('');
-      handleFieldChange('city', '');
+      setValue("city", "", { shouldValidate: true, shouldDirty: true });
       setState('');
-      handleFieldChange('state', '');
+      setValue("state", "", { shouldValidate: true, shouldDirty: true });
       setZipCode('');
-      handleFieldChange('zipCode', '');
+      setValue("zipCode", "", { shouldValidate: true, shouldDirty: true });
       setAddressSuggestions([]);
       setShowSuggestions(false);
     }
@@ -204,26 +266,51 @@ export default function DeliveryInformationStep({
     }, 300);
   };
 
+  // Ensure select-all + Backspace/Delete reliably clears address across browsers.
+  const handleAddressKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Backspace" && event.key !== "Delete") {
+      return;
+    }
+
+    const inputEl = addressInputRef.current;
+    if (!inputEl || !inputEl.value) {
+      return;
+    }
+
+    const selectionStart = inputEl.selectionStart ?? 0;
+    const selectionEnd = inputEl.selectionEnd ?? 0;
+    const hasFullSelection = selectionStart === 0 && selectionEnd === inputEl.value.length;
+    if (!hasFullSelection) {
+      return;
+    }
+
+    event.preventDefault();
+    handleAddressInputChange("");
+  };
+
   // Handle address suggestion selection
   const handleAddressSelect = (suggestion: AddressSuggestion) => {
     // Populate all address fields from selected suggestion
     if (suggestion.street) {
       setDeliveryAddress(suggestion.street);
-      handleFieldChange('deliveryAddress', suggestion.street);
+      setValue("deliveryAddress", suggestion.street, { shouldValidate: true, shouldDirty: true });
     }
     if (suggestion.city) {
       setCity(suggestion.city);
-      handleFieldChange('city', suggestion.city);
+      setValue("city", suggestion.city, { shouldValidate: true, shouldDirty: true });
     }
     if (suggestion.state) {
       setState(suggestion.state);
-      handleFieldChange('state', suggestion.state);
+      setValue("state", suggestion.state, { shouldValidate: true, shouldDirty: true });
     }
     if (suggestion.postalCode) {
       setZipCode(suggestion.postalCode);
-      handleFieldChange('zipCode', suggestion.postalCode);
+      setValue("zipCode", suggestion.postalCode, { shouldValidate: true, shouldDirty: true });
     }
-    
+    if (suggestion.country) {
+      setCountry(suggestion.country);
+      setValue("country", suggestion.country, { shouldValidate: true, shouldDirty: true });
+    }
     // Close suggestions dropdown
     setShowSuggestions(false);
     setAddressSuggestions([]);
@@ -277,7 +364,7 @@ export default function DeliveryInformationStep({
       // Reformat with truncated digits
       const validation = validatePhoneNumber(truncated, locationData, { country: selectedCountry });
       setPhone(validation.formatted);
-      handleFieldChange('phone', validation.formatted);
+      setValue("phone", validation.formatted, { shouldValidate: true, shouldDirty: true });
       return;
     }
     
@@ -286,9 +373,7 @@ export default function DeliveryInformationStep({
     
     // Update phone state with formatted value
     setPhone(validation.formatted);
-    
-    // Update Redux store
-    handleFieldChange('phone', validation.formatted);
+    setValue("phone", validation.formatted, { shouldValidate: true, shouldDirty: true });
     
     // Clear error if phone is empty
     if (!validation.formatted.trim()) {
@@ -305,8 +390,9 @@ export default function DeliveryInformationStep({
   // Handle phone blur - mark as touched and validate (use displayed value so profile.phoneNumber is validated)
   const handlePhoneBlur = () => {
     setPhoneTouched(true);
-    const validation = validatePhoneNumber(displayPhone, locationData, { country: selectedCountry });
+    const validation = validatePhoneNumber(phone, locationData, { country: selectedCountry });
     setPhoneError(validation.errorMessage);
+    trigger("phone");
   };
   
   // Handle country change: update local state and persist to profile store
@@ -325,7 +411,7 @@ export default function DeliveryInformationStep({
         const truncatedDigits = digits.slice(0, newCountryInfo.maxLength);
         const validation = validatePhoneNumber(truncatedDigits, locationData, { country: newCountry });
         setPhone(validation.formatted);
-        handleFieldChange('phone', validation.formatted);
+        setValue("phone", validation.formatted, { shouldValidate: true, shouldDirty: true });
         setPhoneError(validation.errorMessage);
       }
     }
@@ -346,43 +432,46 @@ export default function DeliveryInformationStep({
           We&apos;ll send your confirmation and moving details here
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold mb-2">
-              <span>👤</span> Full Name *
-            </label>
-            <input
-              type="text"
-              value={displayFullName}
-              onChange={(e) => {
-                setFullName(e.target.value);
-                handleFieldChange('fullName', e.target.value);
-              }}
-              placeholder="Jane Doe"
-              required
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] transition"
-            />
-          </div>
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold mb-2">
-              <span>✉️</span> Email Address *
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                handleFieldChange('email', e.target.value);
-              }}
-              placeholder="your@email.com"
-              required
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] transition"
-            />
-          </div>
+          <Input
+            type="text"
+            label="👤 Full Name"
+            {...register("fullName", {
+              required: "Full name is required.",
+              validate: (value) => value.trim().length > 0 || "Full name is required.",
+            })}
+            value={fullName}
+            onChange={(e) => {
+              setFullName(e.target.value);
+              setValue("fullName", e.target.value, { shouldValidate: true, shouldDirty: true });
+            }}
+            placeholder="Jane Doe"
+            required
+            error={errors.fullName?.message}
+          />
+          <Input
+            type="email"
+            label="✉️ Email Address"
+            {...register("email", {
+              required: "Email is required.",
+              pattern: {
+                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                message: "Please enter a valid email address.",
+              },
+            })}
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setValue("email", e.target.value, { shouldValidate: true, shouldDirty: true });
+            }}
+            placeholder="your@email.com"
+            required
+            error={errors.email?.message}
+          />
           <div>
             <label className="flex items-center gap-2 text-sm font-semibold mb-2">
               <span>📱</span> Phone Number *
             </label>
-            {!displayPhone && (
+            {!phone && (
               <p className="mt-1 text-xs text-gray-500 mb-2">
                 {phoneFormatHint}
               </p>
@@ -420,7 +509,7 @@ export default function DeliveryInformationStep({
               {/* Phone Input - show national number from profile.phoneNumber when prop empty */}
               <input
                 type="tel"
-                value={displayPhone}
+                value={phone}
                 onChange={(e) => handlePhoneChange(e.target.value)}
                 onBlur={handlePhoneBlur}
                 placeholder={phonePlaceholder}
@@ -431,12 +520,28 @@ export default function DeliveryInformationStep({
                 aria-describedby={phoneError && phoneTouched ? "phone-error" : undefined}
               />
             </div>
+            <input
+              type="hidden"
+              {...register("phone", {
+                required: "Phone number is required.",
+                validate: (value) => {
+                  if (!value.trim()) return "Phone number is required.";
+                  const validation = validatePhoneNumber(value, locationData, { country: selectedCountry });
+                  return validation.isValid || validation.errorMessage || "Please enter a valid phone number.";
+                },
+              })}
+            />
             {phoneError && phoneTouched && (
               <p id="phone-error" className="mt-1 text-sm text-red-600" role="alert">
                 {phoneError}
               </p>
             )}
-            {!phoneError && displayPhone && phoneTouched && (
+            {!phoneError && errors.phone?.message && (
+              <p id="phone-error" className="mt-1 text-sm text-red-600" role="alert">
+                {errors.phone.message}
+              </p>
+            )}
+            {!phoneError && phone && phoneTouched && (
               <p className="mt-1 text-xs text-green-600">
                 ✓ Valid {countryName} phone number
               </p>
@@ -453,15 +558,15 @@ export default function DeliveryInformationStep({
         </p>
         <div className="space-y-4">
           <div className="relative">
-            <label className="flex items-center gap-2 text-sm font-semibold mb-2">
-              <span>🏠</span> Street Address *
-            </label>
             <div className="relative">
-              <input
+              <Input
                 ref={addressInputRef}
+                id="delivery-address"
                 type="text"
+                label="🏠 Street Address"
                 value={deliveryAddress}
                 onChange={(e) => handleAddressInputChange(e.target.value)}
+                onKeyDown={handleAddressKeyDown}
                 onFocus={() => {
                   if (addressSuggestions.length > 0) {
                     setShowSuggestions(true);
@@ -469,11 +574,18 @@ export default function DeliveryInformationStep({
                 }}
                 placeholder="123 Main Street"
                 required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] transition"
                 autoComplete="off"
+                error={errors.deliveryAddress?.message}
+              />
+              <input
+                type="hidden"
+                {...register("deliveryAddress", {
+                  required: "Street address is required.",
+                  validate: (value) => value.trim().length > 0 || "Street address is required.",
+                })}
               />
               {isSearchingAddress && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div className="absolute right-3 top-[66%] transform -translate-y-1/2">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#f8992f]"></div>
                 </div>
               )}
@@ -508,56 +620,57 @@ export default function DeliveryInformationStep({
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="flex items-center gap-2 text-sm font-semibold mb-2">
-                <span>🏙️</span> City *
-              </label>
-              <input
-                type="text"
-                value={city}
-                onChange={(e) => {
-                  setCity(e.target.value);
-                  handleFieldChange('city', e.target.value);
-                }}
-                placeholder="New York"
-                required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] transition"
-              />
-            </div>
-            <div>
-              <label className="flex items-center gap-2 text-sm font-semibold mb-2">
-                <span>🗺️</span> State *
-              </label>
-              <input
-                type="text"
-                value={state}
-                onChange={(e) => {
-                  setState(e.target.value);
-                  handleFieldChange('state', e.target.value);
-                }}
-                placeholder="NY"
-                required
-                maxLength={2}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] transition uppercase"
-              />
-            </div>
-            <div>
-              <label className="flex items-center gap-2 text-sm font-semibold mb-2">
-                <span>📮</span> ZIP Code *
-              </label>
-              <input
-                type="text"
-                value={zipCode}
-                onChange={(e) => {
-                  setZipCode(e.target.value);
-                  handleFieldChange('zipCode', e.target.value);
-                }}
-                placeholder="10001"
-                required
-                maxLength={10}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] transition"
-              />
-            </div>
+            <Input
+              type="text"
+              label="🏙️ City"
+              {...register("city", {
+                required: "City is required.",
+                validate: (value) => value.trim().length > 0 || "City is required.",
+              })}
+              value={city}
+              onChange={(e) => {
+                setCity(e.target.value);
+                setValue("city", e.target.value, { shouldValidate: true, shouldDirty: true });
+              }}
+              placeholder="New York"
+              required
+              error={errors.city?.message}
+            />
+            <Input
+              type="text"
+              label="🗺️ State"
+              {...register("state", {
+                required: "State is required.",
+              })}
+              value={state}
+              onChange={(e) => {
+                const nextState = e.target.value.toUpperCase().slice(0, 2);
+                setState(nextState);
+                setValue("state", nextState, { shouldValidate: true, shouldDirty: true });
+              }}
+              placeholder="NY"
+              required
+              maxLength={2}
+              className="uppercase"
+              error={errors.state?.message}
+            />
+            <Input
+              type="text"
+              label="📮 ZIP Code"
+              {...register("zipCode", {
+                required: "ZIP code is required.",
+                validate: (value) => value.trim().length > 0 || "ZIP code is required.",
+              })}
+              value={zipCode}
+              onChange={(e) => {
+                setZipCode(e.target.value);
+                setValue("zipCode", e.target.value, { shouldValidate: true, shouldDirty: true });
+              }}
+              placeholder="10001"
+              required
+              maxLength={10}
+              error={errors.zipCode?.message}
+            />
           </div>
           <div>
             <label className="flex items-center gap-2 text-sm font-semibold mb-2">
@@ -567,7 +680,6 @@ export default function DeliveryInformationStep({
               value={deliveryNotes}
               onChange={(e) => {
                 setDeliveryNotes(e.target.value);
-                handleFieldChange('deliveryNotes', e.target.value);
               }}
               placeholder="Any special delivery instructions or notes..."
               rows={3}
@@ -576,6 +688,97 @@ export default function DeliveryInformationStep({
           </div>
         </div>
       </div>
+
+      {isResolvingDeliveryPricing && (
+        <div className="mb-6 bg-[#f9fafb] border border-gray-200 rounded-lg p-4 animate-pulse">
+          <div className="h-4 w-56 bg-gray-200 rounded mb-3" />
+          <div className="h-3 w-72 bg-gray-200 rounded mb-2" />
+          <div className="h-3 w-44 bg-gray-200 rounded mb-2" />
+          <div className="h-3 w-52 bg-gray-200 rounded" />
+        </div>
+      )}
+
+      {deliveryAddress.trim().length > 0 &&
+        locationData?.distanceChargeSource === "warehouse_distance_charges" &&
+        !isResolvingDeliveryPricing && (
+        <div
+          className={`mb-6 border rounded-lg p-4 ${
+            locationData.deliveryCharge === "out_of_area"
+              ? "bg-[#fef2f2] border-red-200"
+              : "bg-[#fff7ed] border-[#f8992f]/25"
+          }`}
+        >
+          <h4 className="text-sm font-semibold text-[#4c4946] mb-1">Delivery Pricing (Auto-calculated)</h4>
+          {(locationData.nearestWarehouseOptions?.length || 0) > 1 && (
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-[#4c4946] mb-1">
+                Select warehouse
+              </label>
+              <select
+                value={locationData.nearestWarehouse?.id || ""}
+                onChange={(e) => onWarehouseSelect(e.target.value)}
+                className="w-full md:w-[360px] border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
+              >
+                {locationData.nearestWarehouseOptions?.map((option: {
+                  id: string;
+                  name: string;
+                  distanceMiles: number;
+                  deliveryCharge: number | "out_of_area";
+                  fee?: number;
+                }) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name} (
+                    {typeof option.distanceMiles === "number"
+                      ? `${option.distanceMiles.toFixed(2)} mi`
+                      : "Distance N/A"}
+                    {" - "}
+                    {typeof option.fee === "number"
+                      ? `$${option.fee.toFixed(2)}`
+                      : typeof option.deliveryCharge === "number"
+                      ? `$${option.deliveryCharge.toFixed(2)}`
+                      : "Charge N/A"})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {locationData.deliveryCharge !== "out_of_area" && (
+            <>
+              <p className="text-sm text-[#6b7280]">
+                Nearest warehouse: <span className="font-medium text-[#4c4946]">{locationData.nearestWarehouse?.name || "N/A"}</span>
+              </p>
+              {typeof locationData.distanceMiles === "number" && (
+                <p className="text-sm text-[#6b7280]">
+                  Distance: <span className="font-medium text-[#4c4946]">{locationData.distanceMiles.toFixed(2)} miles</span>
+                </p>
+              )}
+            </>
+          )}
+          <p className="text-sm text-[#6b7280]">
+            Applied charge:{" "}
+            <span className="font-medium text-[#4c4946]">
+              {locationData.deliveryCharge === "out_of_area"
+                ? locationData.reasonCode === "GEOCODE_FAILED"
+                  ? "Address validation failed"
+                  : locationData.reasonCode === "NO_ACTIVE_WAREHOUSE"
+                  ? "Temporarily unavailable"
+                  : "Out of service area"
+                : typeof locationData.deliveryCharge === "number"
+                ? `$${locationData.deliveryCharge.toFixed(2)}`
+                : "N/A"}
+            </span>
+          </p>
+          {locationData.deliveryCharge === "out_of_area" && (
+            <p className="mt-2 text-xs text-red-700">
+              {locationData.reasonCode === "GEOCODE_FAILED"
+                ? "We could not validate this address. Please correct the address fields."
+                : locationData.reasonCode === "NO_ACTIVE_WAREHOUSE"
+                ? "No active warehouse is currently available for delivery."
+                : "This address is outside our current service area."}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

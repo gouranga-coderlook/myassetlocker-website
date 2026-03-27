@@ -10,6 +10,15 @@ import toast from "react-hot-toast";
 import Hero from "@/components/Hero";
 import AuthLoadingView from "@/components/AuthLoadingView";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useForm } from "react-hook-form";
+import Input from "@/components/ui/Input";
+
+interface RedeliveryFormValues {
+  selectedDate: string;
+  selectedTimeSlotId: string;
+  deliveryAddress: string;
+  notes: string;
+}
 
 export default function CreateRedeliveryRequestPage() {
   const router = useRouter();
@@ -22,13 +31,27 @@ export default function CreateRedeliveryRequestPage() {
   const [loading, setLoading] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [loadingBooking, setLoadingBooking] = useState(false);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTimeSlotId, setSelectedTimeSlotId] = useState("");
   const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
   const [bookingId, setBookingId] = useState("");
   const [booking, setBooking] = useState<Booking | null>(null);
-  const [deliveryAddress, setDeliveryAddress] = useState("");
-  const [notes, setNotes] = useState("");
+  const {
+    register,
+    setValue,
+    watch,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<RedeliveryFormValues>({
+    defaultValues: {
+      selectedDate: "",
+      selectedTimeSlotId: "",
+      deliveryAddress: "",
+      notes: "",
+    },
+    mode: "onChange",
+  });
+
+  const selectedDate = watch("selectedDate");
+  const selectedTimeSlotId = watch("selectedTimeSlotId");
 
   useEffect(() => {
     if (!authHydrated || userId) return;
@@ -67,7 +90,7 @@ export default function CreateRedeliveryRequestPage() {
             bookingData.deliveryInfo.state,
             bookingData.deliveryInfo.zipCode,
           ].filter(Boolean);
-          setDeliveryAddress(addressParts.join(", "));
+          setValue("deliveryAddress", addressParts.join(", "), { shouldValidate: true });
         }
       }
     } catch (error) {
@@ -84,9 +107,9 @@ export default function CreateRedeliveryRequestPage() {
       fetchAvailableTimeSlots(selectedDate);
     } else {
       setAvailableTimeSlots([]);
-      setSelectedTimeSlotId("");
+      setValue("selectedTimeSlotId", "", { shouldValidate: true });
     }
-  }, [selectedDate]);
+  }, [selectedDate, setValue]);
 
   const fetchAvailableTimeSlots = async (date: string) => {
     try {
@@ -157,9 +180,7 @@ export default function CreateRedeliveryRequestPage() {
     return false;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const onSubmit = async (values: RedeliveryFormValues) => {
     if (!userId) {
       toast.error("Please login to create a redelivery request");
       return;
@@ -172,24 +193,24 @@ export default function CreateRedeliveryRequestPage() {
     }
 
     // Validate date and time slot
-    if (!selectedDate) {
+    if (!values.selectedDate) {
       toast.error("Please select a preferred delivery date");
       return;
     }
 
-    if (!selectedTimeSlotId) {
+    if (!values.selectedTimeSlotId) {
       toast.error("Please select a preferred delivery time slot");
       return;
     }
 
     // Find selected time slot
-    const selectedSlot = availableTimeSlots.find(slot => slot.id === selectedTimeSlotId);
+    const selectedSlot = availableTimeSlots.find(slot => slot.id === values.selectedTimeSlotId);
     if (!selectedSlot) {
       toast.error("Selected time slot is no longer available. Please select another.");
       return;
     }
 
-    if (!deliveryAddress) {
+    if (!values.deliveryAddress.trim()) {
       toast.error("Please provide a delivery address");
       return;
     }
@@ -200,9 +221,9 @@ export default function CreateRedeliveryRequestPage() {
       const request: CreateDeliveryRequest = {
         userId,
         parentBookingId: bookingId,
-        address: deliveryAddress,
-        notes: notes || undefined,
-        preferredTimeSlotId: selectedTimeSlotId,
+        address: values.deliveryAddress.trim(),
+        notes: values.notes || undefined,
+        preferredTimeSlotId: values.selectedTimeSlotId,
       };
 
       const response = await valetStorageService.createDeliveryRequest(request);
@@ -273,7 +294,7 @@ export default function CreateRedeliveryRequestPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 md:p-8">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 md:p-8">
           {/* Booking ID (Required) */}
           {bookingId && (
             <div className="mb-6">
@@ -338,16 +359,16 @@ export default function CreateRedeliveryRequestPage() {
 
           {/* Preferred Delivery Date - Mandatory */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Preferred Delivery Date <span className="text-red-500">*</span>
-            </label>
-            <input
+            <Input
+              id="preferred-delivery-date"
               type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              min={getMinDate()}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f]"
+              label="Preferred Delivery Date"
               required
+              min={getMinDate()}
+              error={errors.selectedDate?.message}
+              {...register("selectedDate", {
+                required: "Please select a preferred delivery date.",
+              })}
             />
             <p className="mt-1 text-sm text-gray-500">
               Select your preferred delivery date. Available time slots will be shown below.
@@ -393,7 +414,13 @@ export default function CreateRedeliveryRequestPage() {
                       <button
                         key={slot.id}
                         type="button"
-                        onClick={() => !isDisabled && setSelectedTimeSlotId(slot.id)}
+                        onClick={() =>
+                          !isDisabled &&
+                          setValue("selectedTimeSlotId", slot.id, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          })
+                        }
                         disabled={isDisabled}
                         className={`p-4 rounded-lg border-2 text-left transition-all ${
                           isSelected
@@ -432,21 +459,32 @@ export default function CreateRedeliveryRequestPage() {
                   ✓ Time slot selected: {formatTimeSlot(availableTimeSlots.find(s => s.id === selectedTimeSlotId)!)}
                 </p>
               )}
+              {errors.selectedTimeSlotId?.message && (
+                <p className="mt-2 text-sm text-red-600" role="alert">
+                  {errors.selectedTimeSlotId.message}
+                </p>
+              )}
+              <input
+                type="hidden"
+                {...register("selectedTimeSlotId", {
+                  required: "Please select a preferred delivery time slot.",
+                })}
+              />
             </div>
           )}
 
           {/* Delivery Address */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Delivery Address <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={deliveryAddress}
-              onChange={(e) => setDeliveryAddress(e.target.value)}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f]"
+            <Input
+              id="delivery-address"
+              type="text"
+              label="Delivery Address *"
               placeholder="Enter the address where items should be delivered"
-              required
+              error={errors.deliveryAddress?.message}
+              {...register("deliveryAddress", {
+                required: "Please provide a delivery address.",
+                validate: (value) => value.trim().length > 0 || "Please provide a delivery address.",
+              })}
             />
             <p className="mt-1 text-sm text-gray-500">
               Please provide the complete delivery address
@@ -459,8 +497,7 @@ export default function CreateRedeliveryRequestPage() {
               Additional Notes (Optional)
             </label>
             <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              {...register("notes")}
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f]"
               placeholder="Any special instructions or notes for the delivery team"
@@ -496,7 +533,7 @@ export default function CreateRedeliveryRequestPage() {
             </button>
             <button
               type="submit"
-              disabled={loading || !selectedDate || !selectedTimeSlotId || !deliveryAddress}
+              disabled={loading || !isValid}
               className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
             >
               {loading ? (

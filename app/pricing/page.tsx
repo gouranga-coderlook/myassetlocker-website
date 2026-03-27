@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Hero from "@/components/Hero";
 import AppShowcase from "@/components/AppShowcase";
-import StoreLocationFinder from "@/components/StoreLocationFinder";
 import StoragePlanStep from "@/components/booking-steps/StoragePlanStep";
 import DurationBinsStep from "@/components/booking-steps/DurationBinsStep";
 import AddonsStep from "@/components/booking-steps/AddonsStep";
@@ -15,10 +14,13 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import type { Plan, Bundle, Addon, ProtectionPlan } from "@/store/slices/pricingSlice";
 import {
   initializeCart,
+  setLocationData,
+  updateLocationData,
 } from "@/store/slices/cartSlice";
 import type { BookingCart } from "@/store/slices/cartSlice";
 import { fetchProfileIfNeeded } from "@/store/slices/profileSlice";
 import { transformCartDtoToBookingCart, transformBookingCartToAddCartItemDto, addCartItem } from "@/lib/api/cartService";
+import { resolveDeliveryFee } from "@/lib/api/warehouseService";
 
 /** Set to true to allow clicking step indicators to jump between steps; false for sequential-only navigation. */
 const ALLOW_STEP_CLICK_NAVIGATION = false;
@@ -29,8 +31,10 @@ export default function PricingPage() {
   const { isAuthenticated, authHydrated, openAuthPopup } = useAuth();
   const pendingBookingRef = useRef(false);
   const pendingStepProgressionRef = useRef(false);
+  const addressPricingRequestIdRef = useRef(0);
   const [isCompletingBooking, setIsCompletingBooking] = useState(false);
   const [isSavingCart, setIsSavingCart] = useState(false);
+  const [isResolvingDeliveryPricing, setIsResolvingDeliveryPricing] = useState(false);
 
   // Get Redux pricing data (raw API response)
   const pricingData = useAppSelector((state) => state.pricing.data);
@@ -42,6 +46,10 @@ export default function PricingPage() {
   const locationData = useAppSelector((state) => state.cart.locationData);
   const profile = useAppSelector((state) => state.profile.profileData);
   const hasInitializedContactFromProfile = useRef(false);
+  const [stepError, setStepError] = useState<string | null>(null);
+  const [planSelectionError, setPlanSelectionError] = useState<string | null>(null);
+  const [bundleSelectionError, setBundleSelectionError] = useState<string | null>(null);
+  const [durationSelectionError, setDurationSelectionError] = useState<string | null>(null);
 
   // Booking workflow state - use local state for Steps 1-4, Redux only populated after Step 4 API call
   const [currentStep, setCurrentStep] = useState(1);
@@ -59,6 +67,7 @@ export default function PricingPage() {
   const [city, setCity] = useState<string>("");
   const [state, setState] = useState<string>("");
   const [zipCode, setZipCode] = useState<string>("");
+  const [country, setCountry] = useState<string>("US");
   const [deliveryNotes, setDeliveryNotes] = useState<string>("");
 
   // Helper functions
@@ -120,6 +129,9 @@ export default function PricingPage() {
   // Handler functions - update local state only (no Redux updates)
   const handleSetPlan = (newPlan: Plan | null) => {
     setPlan(newPlan);
+    if (newPlan) {
+      setPlanSelectionError(null);
+    }
     // Reset custom plan flag when plan changes
     if (newPlan) {
       setIsCustomPlanSelected(false);
@@ -128,6 +140,9 @@ export default function PricingPage() {
 
   const handleSetSelectedMonths = (months: number | null) => {
     setSelectedMonths(months);
+    if (months !== null && months !== undefined) {
+      setDurationSelectionError(null);
+    }
   };
 
   const handleSetSelectedBins = (bins: number) => {
@@ -193,9 +208,45 @@ export default function PricingPage() {
     setZipCode(zipCodeValue);
   };
 
+  const handleSetCountry = (countryValue: string) => {
+    setCountry(countryValue);
+  };
+
   const handleSetDeliveryNotes = (notes: string) => {
     setDeliveryNotes(notes);
   };
+
+  const handleWarehouseSelect = (warehouseId: string) => {
+    const options = locationData?.nearestWarehouseOptions || [];
+    const selected = options.find((option) => option.id === warehouseId);
+    if (!selected) return;
+
+    dispatch(
+      updateLocationData({
+        nearestWarehouse: {
+          id: selected.id,
+          name: selected.name,
+        },
+        distanceMiles: selected.distanceMiles,
+        deliveryCharge: selected.deliveryCharge,
+        distanceChargeSource: "warehouse_distance_charges",
+      })
+    );
+  };
+
+  const getServiceabilityMessage = useMemo(() => {
+    if (!locationData?.reasonCode) return null;
+    if (locationData.reasonCode === "GEOCODE_FAILED") {
+      return "We could not validate this address. Please review and try again.";
+    }
+    if (locationData.reasonCode === "OUT_OF_SERVICE_AREA") {
+      return "This address is currently outside our service area.";
+    }
+    if (locationData.reasonCode === "NO_ACTIVE_WAREHOUSE") {
+      return "Delivery is temporarily unavailable because no active warehouse is configured.";
+    }
+    return locationData.reason || "Delivery validation failed for this address.";
+  }, [locationData]);
 
   const getDeliveryFeePerItem = () => {
     // Get delivery fee from selected addon if available
@@ -217,6 +268,7 @@ export default function PricingPage() {
   const [isCustomPlanSelected, setIsCustomPlanSelected] = useState(false);
 
   const handleBundleSelect = (type: string) => {
+    setBundleSelectionError(null);
     const bundle = getBundleByKey(type);
     if (bundle) {
       // Bundle selected - set bundle data but don't navigate yet
@@ -539,15 +591,8 @@ export default function PricingPage() {
         const charge = locationData.deliveryCharge;
         // Convert rupees to USD if region is India (1 USD ≈ 83 INR)
         calculatedTotal += charge;
-      } else if (locationData?.deliveryCharge === "out_of_area") {
-        toast("No storage zone found for your location", {
-          icon: "ℹ️",
-          duration: 4000,
-          style: {
-            background: "#f8992f",
-            color: "#fff",
-          },
-        });
+      } else if (locationData?.isServiceable === false || locationData?.deliveryCharge === "out_of_area") {
+        setStepError(getServiceabilityMessage || "This address is currently outside our service area.");
         return;
       }
 
@@ -582,6 +627,7 @@ export default function PricingPage() {
         },
         locationData,
         zoneDeliveryCharges: locationData?.deliveryCharge as number | null,
+        warehouseId: locationData?.nearestWarehouse?.id || null,
         couponCode: null,
       };
 
@@ -627,16 +673,18 @@ export default function PricingPage() {
   };
 
   const validateStepAndNext = async () => {
+    setStepError(null);
+    setPlanSelectionError(null);
+    setBundleSelectionError(null);
+    setDurationSelectionError(null);
     // Step 1 validation: Must select a plan AND (bundle OR custom plan)
     if (currentStep === 1) {
       if (!plan) {
-        toast.error("Please select a Payment Plan before proceeding.");
+        setPlanSelectionError("Please select a payment plan.");
         return;
       }
       if (!selectedBundle && !isCustomPlanSelected) {
-        toast.error(
-          "Please choose a Bundle Offer or Custom Plan before proceeding."
-        );
+        setBundleSelectionError("Please choose a bundle offer or custom plan.");
         return;
       }
       // If bundle is selected, skip to Delivery Info (step 4)
@@ -654,7 +702,7 @@ export default function PricingPage() {
     // Bins can be 0 (for bulky items only), but duration is required
     if (currentStep === 2 && !selectedBundle) {
       if (selectedMonths === null || selectedMonths === undefined) {
-        toast.error("Please select a storage duration before proceeding.");
+        setDurationSelectionError("Please select a storage duration.");
         return;
       }
       // Duration is selected, allow proceeding (bins can be 0 for bulky items)
@@ -662,37 +710,41 @@ export default function PricingPage() {
     // Step 4 validation: Must fill all required delivery information fields
     if (currentStep === 4) {
       if (!fullName || fullName.trim() === "") {
-        toast.error("Please enter your full name.");
+        setStepError("Please enter your full name.");
         return;
       }
       if (!email || email.trim() === "") {
-        toast.error("Please enter your email address.");
+        setStepError("Please enter your email address.");
         return;
       }
       // Basic email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email.trim())) {
-        toast.error("Please enter a valid email address.");
+        setStepError("Please enter a valid email address.");
         return;
       }
       if (!phone || phone.trim() === "") {
-        toast.error("Please enter your phone number.");
+        setStepError("Please enter your phone number.");
         return;
       }
       if (!deliveryAddress || deliveryAddress.trim() === "") {
-        toast.error("Please enter your delivery address.");
+        setStepError("Please enter your delivery address.");
         return;
       }
       if (!city || city.trim() === "") {
-        toast.error("Please enter your city.");
+        setStepError("Please enter your city.");
         return;
       }
       if (!state || state.trim() === "") {
-        toast.error("Please enter your state.");
+        setStepError("Please enter your state.");
         return;
       }
       if (!zipCode || zipCode.trim() === "") {
-        toast.error("Please enter your ZIP code.");
+        setStepError("Please enter your ZIP code.");
+        return;
+      }
+      if (locationData?.isServiceable === false || locationData?.deliveryCharge === "out_of_area") {
+        setStepError(getServiceabilityMessage || "This address is currently outside our service area.");
         return;
       }
 
@@ -740,6 +792,158 @@ export default function PricingPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, currentStep]);
+
+  useEffect(() => {
+    if (stepError) {
+      setStepError(null);
+    }
+    if (planSelectionError) {
+      setPlanSelectionError(null);
+    }
+    if (bundleSelectionError) {
+      setBundleSelectionError(null);
+    }
+    if (durationSelectionError) {
+      setDurationSelectionError(null);
+    }
+    // Clear stale inline errors when user changes relevant inputs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, fullName, email, phone, deliveryAddress, city, state, zipCode, selectedMonths, plan, selectedBundle, isCustomPlanSelected]);
+
+  // Resolve delivery charge from Step 4 typed address.
+  useEffect(() => {
+    const addressLine = deliveryAddress.trim();
+    const cityValue = city.trim();
+    const stateValue = state.trim();
+    const zipValue = zipCode.trim();
+
+    if (!addressLine || !cityValue || !stateValue || !zipValue) {
+      setIsResolvingDeliveryPricing(false);
+      dispatch(
+        updateLocationData({
+          nearestWarehouse: null,
+          nearestWarehouseOptions: [],
+          distanceMiles: null,
+          deliveryCharge: null,
+          distanceChargeSource: null,
+        })
+      );
+      return;
+    }
+
+    setIsResolvingDeliveryPricing(true);
+    dispatch(
+      updateLocationData({
+        nearestWarehouse: null,
+        nearestWarehouseOptions: [],
+        distanceMiles: null,
+        deliveryCharge: null,
+        distanceChargeSource: null,
+      })
+    );
+
+    const timeoutId = setTimeout(() => {
+      const requestId = addressPricingRequestIdRef.current + 1;
+      addressPricingRequestIdRef.current = requestId;
+
+      (async () => {
+        try {
+          const resolution = await resolveDeliveryFee({
+            address: {
+              streetAddress1: addressLine,
+              city: cityValue,
+              state: stateValue,
+              zipCode: zipValue,
+              country: country || "US",
+            },
+          });
+          if (requestId !== addressPricingRequestIdRef.current) return;
+
+          const prioritizedOptions = Array.isArray(resolution.warehouseOptions)
+            ? resolution.warehouseOptions
+            : [];
+          const primaryOption = prioritizedOptions.length > 0
+            ? prioritizedOptions[0]
+            : (resolution.warehouseId && resolution.warehouseName && typeof resolution.distanceMiles === "number"
+                ? {
+                    warehouseId: resolution.warehouseId,
+                    warehouseName: resolution.warehouseName,
+                    distanceMiles: resolution.distanceMiles,
+                    fee: typeof resolution.fee === "number" ? resolution.fee : NaN,
+                  }
+                : null);
+          const resolvedFee =
+            primaryOption && typeof primaryOption.fee === "number" && Number.isFinite(primaryOption.fee)
+              ? primaryOption.fee
+              : null;
+
+          dispatch(
+            setLocationData({
+              latitude: null,
+              longitude: null,
+              addressDetails: {
+                street: addressLine,
+                city: cityValue,
+                state: stateValue,
+                postalCode: zipValue,
+                country: country || "US",
+                fullAddress: `${addressLine}, ${cityValue}, ${stateValue} ${zipValue}`,
+              },
+              nearestWarehouse: primaryOption
+                ? {
+                    id: primaryOption.warehouseId,
+                    name: primaryOption.warehouseName || "Warehouse",
+                  }
+                : null,
+              nearestWarehouseOptions: prioritizedOptions.length > 0
+                ? prioritizedOptions.map((option) => ({
+                    id: option.warehouseId,
+                    name: option.warehouseName,
+                    distanceMiles: option.distanceMiles,
+                    deliveryCharge:
+                      resolution.isServiceable && typeof option.fee === "number"
+                        ? option.fee
+                        : "out_of_area",
+                  }))
+                : [],
+              distanceMiles: primaryOption?.distanceMiles ?? null,
+              distanceChargeSource: "warehouse_distance_charges",
+              nearestStore: null,
+              distanceKm: null,
+              deliveryCharge:
+                resolution.isServiceable && typeof resolvedFee === "number"
+                  ? resolvedFee
+                  : "out_of_area",
+              isServiceable: resolution.isServiceable,
+              reasonCode: resolution.reasonCode ?? null,
+              reason: resolution.reason ?? null,
+              matchedZone: null,
+            })
+          );
+        } catch {
+          if (requestId !== addressPricingRequestIdRef.current) return;
+          dispatch(
+            updateLocationData({
+              nearestWarehouse: null,
+              nearestWarehouseOptions: [],
+              distanceMiles: null,
+              deliveryCharge: "out_of_area",
+              distanceChargeSource: "warehouse_distance_charges",
+              isServiceable: false,
+              reasonCode: "GEOCODE_FAILED",
+              reason: "Could not validate this address for delivery pricing.",
+            })
+          );
+        } finally {
+          setIsResolvingDeliveryPricing(false);
+        }
+      })();
+    }, 400);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [deliveryAddress, city, state, zipCode, country, dispatch]);
 
   const onCompleteBooking = async () => {
     // Check if user is authenticated
@@ -815,8 +1019,6 @@ export default function PricingPage() {
         }}
         height="compact"
       />
-      {/* Store Location Finder */}
-        <StoreLocationFinder />
       {/* Valet Storage Booking Workflow */}
       <section className="py-20 px-4 relative bg-gradient-to-br from-[#f7f7f7] to-[#fef7ed]">
         <div className="max-w-4xl mx-auto text-center mb-12">
@@ -918,6 +1120,8 @@ export default function PricingPage() {
               <StoragePlanStep
                 plan={plan}
                 setPlan={handleSetPlan}
+                planError={planSelectionError}
+                bundleError={bundleSelectionError}
                 selectedBundle={
                   selectedBundle
                     ? selectedBundle.bundle_name
@@ -945,6 +1149,7 @@ export default function PricingPage() {
                 prepaidPlan={prepaidPlan}
                 monthToMonthPlan={monthToMonthPlan}
                 currentPlan={plan}
+                durationError={durationSelectionError}
               />
             )}
             {/* Step 3: Add-ons */}
@@ -990,6 +1195,10 @@ export default function PricingPage() {
                 setState={handleSetState}
                 zipCode={zipCode}
                 setZipCode={handleSetZipCode}
+                country={country}
+                setCountry={handleSetCountry}
+                isResolvingDeliveryPricing={isResolvingDeliveryPricing}
+                onWarehouseSelect={handleWarehouseSelect}
                 deliveryNotes={deliveryNotes}
                 setDeliveryNotes={handleSetDeliveryNotes}
               />
@@ -1032,6 +1241,11 @@ export default function PricingPage() {
               />
             )}
             {/* Navigation Buttons */}
+            {stepError && (
+              <div className="mb-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {stepError}
+              </div>
+            )}
             <div className="flex justify-between mt-8 pt-8">
               {currentStep > 1 && currentStep < 5 && (
                 <button

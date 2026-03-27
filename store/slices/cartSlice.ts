@@ -23,6 +23,18 @@ export interface LocationData {
     country: string;
     fullAddress: string;
   } | null;
+  nearestWarehouse: {
+    id: string;
+    name: string;
+  } | null;
+  nearestWarehouseOptions?: Array<{
+    id: string;
+    name: string;
+    distanceMiles: number;
+    deliveryCharge: number | "out_of_area";
+  }>;
+  distanceMiles: number | null;
+  distanceChargeSource: "warehouse_distance_charges" | "delivery_zone" | null;
   nearestStore: {
     id: string;
     name: string;
@@ -32,6 +44,9 @@ export interface LocationData {
   } | null;
   distanceKm: number | null;
   deliveryCharge: number | "out_of_area" | null;
+  isServiceable?: boolean | null;
+  reasonCode?: "GEOCODE_FAILED" | "OUT_OF_SERVICE_AREA" | "NO_ACTIVE_WAREHOUSE" | string | null;
+  reason?: string | null;
   matchedZone: DeliveryZone | null;
 }
 
@@ -77,6 +92,7 @@ export interface BookingCart {
   
   // Coupon code
   couponCode?: string | null;
+  warehouseId?: string | null;
   
   // Metadata
   createdAt?: string;
@@ -123,6 +139,7 @@ const initialState: BookingCart = {
   
   locationData: null,
   couponCode: null,
+  warehouseId: null,
 
   deliveryInfo: {
     fullName: "",

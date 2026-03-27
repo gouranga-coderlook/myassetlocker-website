@@ -343,25 +343,13 @@ export default function SummaryStep({
           </div>
         )}
 
-        {/* Delivery Zone with Price */}
-        {locationData?.matchedZone && (
+        {/* Delivery Charge */}
+        {locationData?.deliveryCharge && typeof locationData.deliveryCharge === 'number' && (
           <div className="flex justify-between py-2 border-b border-gray-200">
-            <span className="text-gray-600">Delivery Zone ({locationData.matchedZone.zoneName}):</span>
-            <span className="font-semibold">
-              ${locationData.matchedZone.price.toFixed(2)}
-            </span>
-          </div>
-        )}
-
-        {/* Delivery Charge (when matchedZone is null but deliveryCharge exists) */}
-        {!locationData?.matchedZone && locationData?.deliveryCharge && typeof locationData.deliveryCharge === 'number' && (
-          <div className="flex justify-between py-2 border-b border-gray-200">
-            <span className="text-gray-600">Delivery Charge (Zone):</span>
+            <span className="text-gray-600">Delivery Charge:</span>
             <span className="font-semibold">
               ${(() => {
-                // const region = locationData.nearestStore?.region?.toLowerCase();
                 const charge = locationData.deliveryCharge;
-                // Convert rupees to USD if region is India (1 USD ≈ 83 INR)
                 const displayCharge = charge;
                 return displayCharge.toFixed(2);
               })()}
@@ -429,12 +417,61 @@ export default function SummaryStep({
       </div>
 
       {/* Delivery Information */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+      <div
+        className={`rounded-lg p-4 mt-6 border ${
+          locationData?.deliveryCharge === "out_of_area"
+            ? "bg-red-50 border-red-200"
+            : "bg-blue-50 border-blue-200"
+        }`}
+      >
         <h3 className="font-semibold mb-2">📍 Delivery Information</h3>
-        <p className="text-sm text-gray-600">
-          Standard delivery includes 0-7 mile radius. Re-delivery fees vary
-          based on plan type and duration.
+        <p className="text-sm text-gray-600 mb-2">
+          {locationData?.distanceChargeSource === "warehouse_distance_charges"
+            ? `Delivery pricing is calculated from the nearest warehouse${
+                locationData.nearestWarehouse?.name
+                  ? ` (${locationData.nearestWarehouse.name})`
+                  : ""
+              } based on your validated address distance.`
+            : "Delivery pricing will be calculated from the nearest warehouse after address validation."}
         </p>
+        {locationData?.deliveryCharge === "out_of_area" ? (
+          <p className="text-sm text-red-700">
+            {locationData.reasonCode === "GEOCODE_FAILED"
+              ? "We could not verify this address. Please review and try again."
+              : locationData.reasonCode === "NO_ACTIVE_WAREHOUSE"
+              ? "Delivery is temporarily unavailable because no active warehouse is available."
+              : "This address is currently out of service area for the nearest warehouse."}
+          </p>
+        ) : locationData?.distanceChargeSource === "warehouse_distance_charges" ? (
+          <div className="space-y-1 text-sm text-gray-700">
+            <p>
+              Nearest warehouse:{" "}
+              <span className="font-semibold text-gray-900">
+                {locationData.nearestWarehouse?.name || "N/A"}
+              </span>
+            </p>
+            {typeof locationData.distanceMiles === "number" && (
+              <p>
+                Distance:{" "}
+                <span className="font-semibold text-gray-900">
+                  {locationData.distanceMiles.toFixed(2)} miles
+                </span>
+              </p>
+            )}
+            <p>
+              Applied distance charge:{" "}
+              <span className="font-semibold text-gray-900">
+                {typeof locationData.deliveryCharge === "number"
+                  ? `$${locationData.deliveryCharge.toFixed(2)}`
+                  : "N/A"}
+              </span>
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600">
+            Delivery pricing will be based on the nearest warehouse after address validation.
+          </p>
+        )}
       </div>
     </div>
   );

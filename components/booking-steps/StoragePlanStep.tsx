@@ -9,6 +9,8 @@ interface StoragePlanStepProps {
   readonly setPlan: (plan: Plan | null) => void;
   readonly selectedBundle: string | null;
   readonly onBundleSelect: (bundle: string) => void;
+  readonly planError?: string | null;
+  readonly bundleError?: string | null;
 }
 
 export default function StoragePlanStep({
@@ -16,6 +18,8 @@ export default function StoragePlanStep({
   setPlan,
   selectedBundle,
   onBundleSelect,
+  planError,
+  bundleError,
 }: StoragePlanStepProps) {
   const pricingData = useAppSelector((state) => state.pricing.data);
   
@@ -73,6 +77,8 @@ export default function StoragePlanStep({
                   suppressHydrationWarning
                   className={`flex items-center space-x-3 cursor-pointer p-4 border-2 rounded-lg hover:border-[#f8992f] transition bg-white ${
                     isSelected ? "border-[#f8992f]" : "border-gray-200"
+                  } ${
+                    !isSelected && planError ? "border-red-400" : ""
                   }`}
                 >
                   <input
@@ -101,6 +107,9 @@ export default function StoragePlanStep({
               );
             })}
           </div>
+          {planError && (
+            <p className="mt-2 text-sm text-red-600">{planError}</p>
+          )}
         </div>
       )}
 
@@ -130,6 +139,8 @@ export default function StoragePlanStep({
                     selectedBundle === bundleKey
                       ? "border-[#f8992f]"
                       : "border-gray-200 hover:border-[#f8992f]"
+                  } ${
+                    selectedBundle !== bundleKey && bundleError ? "border-red-400" : ""
                   }`}
                 >
                   <h4 className="text-lg font-bold mb-2">
@@ -167,6 +178,8 @@ export default function StoragePlanStep({
                 selectedBundle === "custom"
                   ? "border-[#f8992f]"
                   : "border-gray-200 hover:border-[#f8992f]"
+              } ${
+                selectedBundle !== "custom" && bundleError ? "border-red-400" : ""
               }`}
             >
               <h4 className="text-lg font-bold mb-2">📦 Custom Plan</h4>
@@ -182,6 +195,9 @@ export default function StoragePlanStep({
               </div>
             </div>
           </div>
+          {bundleError && (
+            <p className="mt-2 text-sm text-red-600">{bundleError}</p>
+          )}
         </div>
       )}
     </div>

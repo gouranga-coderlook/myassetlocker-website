@@ -1,49 +1,49 @@
 "use client";
 import Hero from "@/components/Hero";
 import { useState } from "react";
+import Input from "@/components/ui/Input";
+import { useForm } from "react-hook-form";
+
+interface ContactFormValues {
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+  inquiryType: string;
+}
+
+const CONTACT_FORM_DEFAULTS: ContactFormValues = {
+  name: "",
+  email: "",
+  phone: "",
+  subject: "",
+  message: "",
+  inquiryType: "general",
+};
 
 export default function ContactUs() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    subject: '',
-    message: '',
-    inquiryType: 'general'
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ContactFormValues>({
+    defaultValues: CONTACT_FORM_DEFAULTS,
+    mode: "onTouched",
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
+  const onSubmit = async (_values: ContactFormValues) => {
     // Simulate form submission
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setIsSubmitting(false);
+
     setIsSubmitted(true);
-    
+
     // Reset form after 3 seconds
     setTimeout(() => {
       setIsSubmitted(false);
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: '',
-        inquiryType: 'general'
-      });
+      reset(CONTACT_FORM_DEFAULTS);
     }, 3000);
   };
 
@@ -217,65 +217,54 @@ export default function ContactUs() {
                     </p>
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                  <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label
-                          htmlFor="name"
-                          className="block text-sm font-semibold text-[#4c4946] mb-3"
-                        >
-                          Full Name *
-                        </label>
-                        <input
-                          type="text"
-                          id="name"
-                          name="name"
-                          required
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300"
-                          placeholder="Your full name"
-                        />
-                      </div>
+                      <Input
+                        type="text"
+                        id="name"
+                        label="Full Name"
+                        required
+                        error={errors.name?.message}
+                        {...register("name", {
+                          required: "Full name is required.",
+                        })}
+                        className="border-[#e8e8e8] bg-white text-[#4c4946]"
+                        placeholder="Your full name"
+                      />
 
-                      <div>
-                        <label
-                          htmlFor="email"
-                          className="block text-sm font-semibold text-[#4c4946] mb-3"
-                        >
-                          Email Address *
-                        </label>
-                        <input
-                          type="email"
-                          id="email"
-                          name="email"
-                          required
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300"
-                          placeholder="your@email.com"
-                        />
-                      </div>
+                      <Input
+                        type="email"
+                        id="email"
+                        label="Email Address"
+                        required
+                        error={errors.email?.message}
+                        {...register("email", {
+                          required: "Email address is required.",
+                          pattern: {
+                            value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                            message: "Please enter a valid email address.",
+                          },
+                        })}
+                        className="border-[#e8e8e8] bg-white text-[#4c4946]"
+                        placeholder="your@email.com"
+                      />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label
-                          htmlFor="phone"
-                          className="block text-sm font-semibold text-[#4c4946] mb-3"
-                        >
-                          Phone Number
-                        </label>
-                        <input
-                          type="tel"
-                          id="phone"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300"
-                          placeholder="(555) 123-4567"
-                        />
-                      </div>
+                      <Input
+                        type="tel"
+                        id="phone"
+                        label="Phone Number"
+                        error={errors.phone?.message}
+                        {...register("phone", {
+                          pattern: {
+                            value: /^$|^[0-9()+\-\s]{10,}$/,
+                            message: "Please enter a valid phone number.",
+                          },
+                        })}
+                        className="border-[#e8e8e8] bg-white text-[#4c4946]"
+                        placeholder="(555) 123-4567"
+                      />
 
                       <div>
                         <label
@@ -286,9 +275,7 @@ export default function ContactUs() {
                         </label>
                         <select
                           id="inquiryType"
-                          name="inquiryType"
-                          value={formData.inquiryType}
-                          onChange={handleInputChange}
+                          {...register("inquiryType")}
                           className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300"
                         >
                           <option value="general">General Inquiry</option>
@@ -300,42 +287,46 @@ export default function ContactUs() {
                       </div>
                     </div>
 
-                    <div>
-                      <label
-                        htmlFor="subject"
-                        className="block text-sm font-semibold text-[#4c4946] mb-3"
-                      >
-                        Subject *
-                      </label>
-                      <input
-                        type="text"
-                        id="subject"
-                        name="subject"
-                        required
-                        value={formData.subject}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300"
-                        placeholder="Brief description of your inquiry"
-                      />
-                    </div>
+                    <Input
+                      type="text"
+                      id="subject"
+                      label="Subject"
+                      required
+                      error={errors.subject?.message}
+                      {...register("subject", {
+                        required: "Subject is required.",
+                      })}
+                      className="border-[#e8e8e8] bg-white text-[#4c4946]"
+                      placeholder="Brief description of your inquiry"
+                    />
 
                     <div>
                       <label
                         htmlFor="message"
                         className="block text-sm font-semibold text-[#4c4946] mb-3"
                       >
-                        Message *
+                        Message
+                        <span className="ml-1 text-red-500">*</span>
                       </label>
                       <textarea
                         id="message"
-                        name="message"
-                        required
                         rows={6}
-                        value={formData.message}
-                        onChange={handleInputChange}
+                        {...register("message", {
+                          required: "Message is required.",
+                          minLength: {
+                            value: 10,
+                            message: "Message should be at least 10 characters.",
+                          },
+                        })}
                         className="w-full px-4 py-3 border-2 border-[#e8e8e8] rounded-xl focus:ring-2 focus:ring-[#f8992f] focus:border-[#f8992f] bg-white text-[#4c4946] transition-all duration-300 resize-none"
                         placeholder="Please provide details about your inquiry..."
+                        aria-invalid={!!errors.message}
                       />
+                      {errors.message?.message && (
+                        <p className="mt-2 text-sm text-red-600" role="alert">
+                          {errors.message.message}
+                        </p>
+                      )}
                     </div>
 
                     <button
