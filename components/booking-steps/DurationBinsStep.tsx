@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Plan } from "@/store/slices/pricingSlice";
 
 interface DurationBinsStepProps {
@@ -31,26 +31,43 @@ export default function DurationBinsStep({
   const [isModalImageLoading, setIsModalImageLoading] = useState(false);
   const binImages = [
     {
-      src: "/Bin%20-%20inside%20view.jpg.jpeg",
+      src: "/BinInsideView.jpeg",
       alt: "Inside view of storage bin",
     },
     {
-      src: "/Bin%20-%20side%20view%20-%20cropped.jpg.jpeg",
+      src: "/BinSideViewCropped.jpeg",
       alt: "Side view of storage bin",
     },
     {
-      src: "/Filled%20Tote%20bin.png",
+      src: "/FilledToteBin.png",
       alt: "Example of filled storage tote bin",
     },
     {
-      src: "/filled%20bin%202.png",
+      src: "/filledBin2.png",
       alt: "Filled bin with mixed items",
     },
     {
-      src: "/Filled%20Tote%20bin%203.png",
+      src: "/FilledToteBin3.png",
       alt: "Filled tote bin with household storage items",
     },
   ] as const;
+  const totalBinImages = binImages.length;
+  const hasPreviousImage = activeImageIndex !== null && activeImageIndex > 0;
+  const hasNextImage = activeImageIndex !== null && activeImageIndex < totalBinImages - 1;
+
+  const goToPreviousImage = useCallback(() => {
+    if (!hasPreviousImage || activeImageIndex === null) return;
+    setActiveImageIndex(activeImageIndex - 1);
+    setZoomScale(1);
+    setIsModalImageLoading(true);
+  }, [activeImageIndex, hasPreviousImage]);
+
+  const goToNextImage = useCallback(() => {
+    if (!hasNextImage || activeImageIndex === null) return;
+    setActiveImageIndex(activeImageIndex + 1);
+    setZoomScale(1);
+    setIsModalImageLoading(true);
+  }, [activeImageIndex, hasNextImage]);
 
   useEffect(() => {
     if (activeImageIndex === null) return;
@@ -59,6 +76,10 @@ export default function DurationBinsStep({
         setActiveImageIndex(null);
         setZoomScale(1);
         setIsModalImageLoading(false);
+      } else if (event.key === "ArrowLeft") {
+        goToPreviousImage();
+      } else if (event.key === "ArrowRight") {
+        goToNextImage();
       } else if (event.key === "+") {
         setZoomScale((prev) => Math.min(3, Number((prev + 0.25).toFixed(2))));
       } else if (event.key === "-") {
@@ -67,7 +88,7 @@ export default function DurationBinsStep({
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [activeImageIndex]);
+  }, [activeImageIndex, goToNextImage, goToPreviousImage]);
 
   useEffect(() => {
     if (activeImageIndex === null) return;
@@ -376,7 +397,7 @@ export default function DurationBinsStep({
           >
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm text-white/90">
-                Click outside to close. Use + / - buttons to zoom.
+                Click outside to close. Use arrow keys for previous/next and + / - to zoom.
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -432,6 +453,48 @@ export default function DurationBinsStep({
                 });
               }}
             >
+              {hasPreviousImage && (
+                <button
+                  type="button"
+                  onClick={goToPreviousImage}
+                  className="absolute left-4 top-1/2 z-20 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/45 text-white shadow-[0_8px_20px_rgba(0,0,0,0.35)] backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:border-[#f8992f] hover:bg-[#f8992f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f8992f] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                  aria-label="Show previous image"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+              )}
+              {hasNextImage && (
+                <button
+                  type="button"
+                  onClick={goToNextImage}
+                  className="absolute right-4 top-1/2 z-20 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/45 text-white shadow-[0_8px_20px_rgba(0,0,0,0.35)] backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:border-[#f8992f] hover:bg-[#f8992f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f8992f] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                  aria-label="Show next image"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
+                </button>
+              )}
               {isModalImageLoading && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
                   <div className="flex items-center gap-2 rounded bg-black/60 px-4 py-2 text-sm text-white">
