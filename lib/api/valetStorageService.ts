@@ -117,6 +117,47 @@ interface WorkflowLogResponse {
   note: string | null;
 }
 
+// Some backend responses may return an address *object* here instead of a string.
+// React will throw at runtime if we try to render that object directly.
+const formatAddressToLine = (address: unknown): string => {
+  if (!address) return "";
+  if (typeof address === "string") return address;
+
+  if (typeof address === "object") {
+    const a = address as Partial<{
+      streetAddress1: string;
+      streetAddress2: string;
+      city: string;
+      state: string;
+      zipCode: string;
+      country: string;
+    }>;
+
+    const street = [a.streetAddress1, a.streetAddress2]
+      .filter(Boolean)
+      .map((s) => s?.trim())
+      .filter(Boolean)
+      .join(" ");
+
+    const cityStateZip = [a.city, [a.state, a.zipCode].filter(Boolean).join(" ")]
+      .filter(Boolean)
+      .map((s) => s?.trim())
+      .filter(Boolean)
+      .join(", ");
+
+    const country = a.country?.trim();
+
+    return [street, cityStateZip, country].filter(Boolean).join(" ");
+  }
+
+  return "";
+};
+
+const normalizeWarehouseLocation = (value: unknown): string | null => {
+  const line = formatAddressToLine(value);
+  return line ? line : null;
+};
+
 /**
  * Valet Storage Service
  * Handles pickup and delivery requests for valet storage
@@ -218,6 +259,7 @@ export const valetStorageService = {
       if (response.data.success && response.data.data) {
         return response.data.data.map((order) => ({
           ...order,
+          warehouseLocation: normalizeWarehouseLocation(order.warehouseLocation),
           status: order.status as OrderStatus,
         }));
       }
@@ -237,6 +279,7 @@ export const valetStorageService = {
         if (pickupResponse.data.success && pickupResponse.data.data) {
           orders.push(...pickupResponse.data.data.map((o) => ({
             ...o,
+            warehouseLocation: normalizeWarehouseLocation(o.warehouseLocation),
             status: o.status as OrderStatus,
             type: "pickup" as OrderType,
           })));
@@ -245,6 +288,7 @@ export const valetStorageService = {
         if (deliveryResponse.data.success && deliveryResponse.data.data) {
           orders.push(...deliveryResponse.data.data.map((o) => ({
             ...o,
+            warehouseLocation: normalizeWarehouseLocation(o.warehouseLocation),
             status: o.status as OrderStatus,
             type: "delivery" as OrderType,
           })));
@@ -270,6 +314,7 @@ export const valetStorageService = {
       if (response.data.success && response.data.data) {
         return {
           ...response.data.data,
+          warehouseLocation: normalizeWarehouseLocation(response.data.data.warehouseLocation),
           status: response.data.data.status as OrderStatus,
           type,
         };

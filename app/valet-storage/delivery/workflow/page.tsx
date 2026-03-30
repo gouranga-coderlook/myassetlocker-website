@@ -63,6 +63,42 @@ export default function DeliveryWorkflowPage() {
     };
   };
 
+  // Some backend responses may return an address object instead of a string.
+  // Normalize to a display string so React never tries to render objects.
+  const formatAddressToLine = (address: unknown): string => {
+    if (!address) return "";
+    if (typeof address === "string") return address;
+
+    if (typeof address === "object") {
+      const a = address as Partial<{
+        streetAddress1: string;
+        streetAddress2: string;
+        city: string;
+        state: string;
+        zipCode: string;
+        country: string;
+      }>;
+
+      const street = [a.streetAddress1, a.streetAddress2]
+        .filter(Boolean)
+        .map((s) => s?.trim())
+        .filter(Boolean)
+        .join(" ");
+
+      const cityStateZip = [a.city, [a.state, a.zipCode].filter(Boolean).join(" ")]
+        .filter(Boolean)
+        .map((s) => s?.trim())
+        .filter(Boolean)
+        .join(", ");
+
+      const country = a.country?.trim();
+
+      return [street, cityStateZip, country].filter(Boolean).join(" ");
+    }
+
+    return "";
+  };
+
   // Normalize backend status (uppercase) to frontend enum (lowercase)
   const normalizeOrderStatus = (status: string | OrderStatus): OrderStatus => {
     if (!status) return OrderStatus.DELIVERY_REQUEST;
@@ -620,7 +656,7 @@ export default function DeliveryWorkflowPage() {
               </h3>
               <div className="space-y-1.5">
                 <p className="text-xs font-medium text-gray-900">{booking.deliveryInfo.fullName}</p>
-                <p className="text-[10px] text-gray-600">{booking.deliveryInfo.address}</p>
+                <p className="text-[10px] text-gray-600">{formatAddressToLine(booking.deliveryInfo.address)}</p>
                 <p className="text-[10px] text-gray-600">
                   {booking.deliveryInfo.city}, {booking.deliveryInfo.state} {booking.deliveryInfo.zipCode}
                 </p>

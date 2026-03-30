@@ -85,6 +85,32 @@ export default function PickupWorkflowPage() {
     };
   };
 
+  // Some backend responses return an address *object* instead of a single string.
+  // Normalize it into a human-readable string so React never tries to render objects.
+  const formatAddressToLine = (address: unknown): string => {
+    if (!address) return "";
+    if (typeof address === "string") return address;
+
+    if (typeof address === "object") {
+      const a = address as Partial<{
+        streetAddress1: string;
+        streetAddress2: string;
+        city: string;
+        state: string;
+        zipCode: string;
+        country: string;
+      }>;
+
+      const street = [a.streetAddress1, a.streetAddress2].filter(Boolean).map(s => s?.trim()).filter(Boolean).join(" ");
+      const cityStateZip = [a.city, [a.state, a.zipCode].filter(Boolean).join(" ")].filter(Boolean).map(s => s?.trim()).filter(Boolean).join(", ");
+      const country = a.country?.trim();
+
+      return [street, cityStateZip, country].filter(Boolean).join(" ");
+    }
+
+    return "";
+  };
+
   // Extract warehouse info from shipmentDetails
   const extractWarehouseInfo = (shipmentDetails: Booking['shipmentDetails']): WarehouseInfo | null => {
     if (!shipmentDetails?.warehouse) return null;
@@ -92,7 +118,7 @@ export default function PickupWorkflowPage() {
     return {
       id: shipmentDetails.warehouse.id,
       name: shipmentDetails.warehouse.name,
-      address: shipmentDetails.warehouse.address,
+      address: formatAddressToLine(shipmentDetails.warehouse.address),
       location: undefined, // Can be added if available in API response
     };
   };
@@ -156,7 +182,9 @@ export default function PickupWorkflowPage() {
     // Extract scheduled time, driver, and warehouse from shipmentDetails
     const scheduledAt = booking.shipmentDetails?.scheduledAt || null;
     const assignedDriverId = booking.shipmentDetails?.driver?.id || null;
-    const warehouseLocation = booking.shipmentDetails?.warehouse?.address || null;
+    const warehouseLocation = booking.shipmentDetails?.warehouse?.address
+      ? formatAddressToLine(booking.shipmentDetails.warehouse.address)
+      : null;
 
     return {
       id: booking.id,
