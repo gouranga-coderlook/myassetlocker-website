@@ -70,7 +70,6 @@ export default function RegisterForm({
   );
   const phonePlaceholder = countryInfo.placeholder;
   const phoneFormatHint = countryInfo.hint;
-  const countryName = countryInfo.name;
   const mobilePhoneNumber = watch("mobilePhoneNumber");
   const password = watch("password");
 
@@ -245,7 +244,7 @@ export default function RegisterForm({
                 }
                 disabled={externalLoading}
                 className="pl-10 pr-6 py-3 appearance-none bg-transparent border-0 focus:outline-none cursor-pointer text-transparent hover:text-transparent transition disabled:opacity-50 disabled:cursor-not-allowed"
-                title={`${countryName} (+${countryInfo.dialCode})`}
+                title={`+${countryInfo.dialCode}`}
                 style={{
                   width: "80px",
                   color: "transparent",
@@ -258,12 +257,12 @@ export default function RegisterForm({
                     value={country.code}
                     className="bg-white text-gray-700"
                   >
-                    {country.name} (+{country.dialCode})
+                    +{country.dialCode} ({country.code})
                   </option>
                 ))}
               </select>
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 text-sm font-semibold text-gray-700">
-                {selectedCountry}
+                +{countryInfo.dialCode}
               </div>
               <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none z-10">
                 <svg
@@ -335,7 +334,7 @@ export default function RegisterForm({
           ) : null}
           {!phoneError && mobilePhoneNumber && phoneTouched && (
             <p className="mt-1 text-xs text-green-600">
-              ✓ Valid {countryName} phone number
+              ✓ Valid +{countryInfo.dialCode} phone number
             </p>
           )}
         </div>

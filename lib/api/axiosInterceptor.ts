@@ -64,7 +64,8 @@ export function setupAxiosInterceptors(store: any) {
                             originalRequest.url?.includes('/auth/verify-email') ||
                             originalRequest.url?.includes('/auth/forget-password') ||
                             originalRequest.url?.includes('/auth/reset-password') ||
-                            originalRequest.url?.includes('/auth/refresh-token');
+                            originalRequest.url?.includes('/auth/refresh-token') ||
+                            originalRequest.url?.includes('/warehouses/resolve-delivery-fee');
 
       // If error is not 401, or it's an auth endpoint, reject immediately
       if (error.response?.status !== 401 || isAuthEndpoint) {

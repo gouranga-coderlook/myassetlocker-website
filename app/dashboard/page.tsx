@@ -20,11 +20,68 @@ function isStoredInventoryStatus(orderStatus?: string): boolean {
   return STORED_INVENTORY_STATUSES.has(orderStatus.toUpperCase());
 }
 
+function getOrderStatusColor(orderStatus: string | undefined) {
+  if (!orderStatus) return "bg-gray-100 text-gray-800";
+
+  const normalizedStatus = orderStatus.toUpperCase();
+
+  if (normalizedStatus === "DELIVERED") {
+    return "bg-green-100 text-green-800";
+  }
+
+  if (
+    normalizedStatus === "PICKUP_CONFIRMED" ||
+    normalizedStatus === "STORED" ||
+    normalizedStatus === "DELIVERY_REQUEST_CONFIRMED"
+  ) {
+    return "bg-purple-100 text-purple-800";
+  }
+
+  if (
+    normalizedStatus === "PICKUP_SCHEDULED" ||
+    normalizedStatus === "PICKED_UP" ||
+    normalizedStatus === "DELIVERY_SCHEDULED"
+  ) {
+    return "bg-blue-100 text-blue-800";
+  }
+
+  if (
+    normalizedStatus === "PICKUP_REQUEST" ||
+    normalizedStatus === "DELIVERY_REQUEST"
+  ) {
+    return "bg-yellow-100 text-yellow-800";
+  }
+
+  if (normalizedStatus === "DRAFT") {
+    return "bg-gray-100 text-gray-800";
+  }
+
+  return "bg-blue-100 text-blue-800";
+}
+
+function formatOrderStatus(orderStatus: string | undefined) {
+  if (!orderStatus) return "";
+
+  return orderStatus
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { isAuthenticated, authHydrated, openAuthPopup, user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoadingKey, setActionLoadingKey] = useState<string | null>(null);
+
+  const handleNavigate = useCallback(
+    (key: string, path: string) => {
+      setActionLoadingKey(key);
+      router.push(path);
+    },
+    [router],
+  );
 
   const loadBookings = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -64,6 +121,16 @@ export default function DashboardPage() {
         return total + bookingItemCount;
       }, 0),
     [storedInventoryBookings],
+  );
+  const previousBookings = useMemo(
+    () =>
+      [...bookings]
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .slice(0, 5),
+    [bookings],
   );
 
   if (!authHydrated) {
@@ -129,7 +196,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 w-full lg:w-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full lg:w-auto">
               <div className="rounded-xl border border-[#fbd7a5] bg-[#fef7ed] px-4 py-3">
                 <p className="text-xs uppercase tracking-wide text-[#8e9293]">
                   Active Inventory
@@ -152,21 +219,45 @@ export default function DashboardPage() {
                   </p>
                 )}
               </div>
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+                <p className="text-xs uppercase tracking-wide text-[#8e9293]">
+                  Total Bookings
+                </p>
+                {loading ? (
+                  <div className="mt-1 h-8 w-14 animate-pulse rounded bg-gray-200" />
+                ) : (
+                  <p className="text-2xl font-bold text-[#4c4946]">
+                    {bookings.length}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
             <button
-              onClick={() => router.push("/pricing")}
-              className="px-5 py-2.5 bg-gradient-to-r from-[#ea9637] to-[#FB9A2D] text-white font-semibold rounded-lg hover:from-[#d8852a] hover:to-[#e88a25] transition-all"
+              onClick={() => handleNavigate("book-storage-top", "/pricing")}
+              disabled={actionLoadingKey !== null}
+              className="px-5 py-2.5 bg-gradient-to-r from-[#ea9637] to-[#FB9A2D] text-white font-semibold rounded-lg hover:from-[#d8852a] hover:to-[#e88a25] transition-all disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
             >
-              Book Storage
+              {actionLoadingKey === "book-storage-top" && (
+                <span className="w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />
+              )}
+              {actionLoadingKey === "book-storage-top"
+                ? "Loading..."
+                : "Book Storage"}
             </button>
             <button
-              onClick={() => router.push("/bookings")}
-              className="px-5 py-2.5 border border-[#f8992f] text-[#f8992f] font-semibold rounded-lg hover:bg-[#f8992f]/5 transition-colors"
+              onClick={() => handleNavigate("view-all-orders-top", "/bookings")}
+              disabled={actionLoadingKey !== null}
+              className="px-5 py-2.5 border border-[#f8992f] text-[#f8992f] font-semibold rounded-lg hover:bg-[#f8992f]/5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
             >
-              View All Orders
+              {actionLoadingKey === "view-all-orders-top" && (
+                <span className="w-4 h-4 border-2 border-[#f8992f]/70 border-t-transparent rounded-full animate-spin" />
+              )}
+              {actionLoadingKey === "view-all-orders-top"
+                ? "Loading..."
+                : "View All Orders"}
             </button>
           </div>
         </div>
@@ -186,14 +277,28 @@ export default function DashboardPage() {
               items to your inventory.
             </p>
             <button
-              onClick={() => router.push("/pricing")}
-              className="px-6 py-3 bg-gradient-to-r from-[#ea9637] to-[#FB9A2D] text-white font-semibold rounded-lg hover:from-[#d8852a] hover:to-[#e88a25] transition-all"
+              onClick={() => handleNavigate("book-storage-empty", "/pricing")}
+              disabled={actionLoadingKey !== null}
+              className="px-6 py-3 bg-gradient-to-r from-[#ea9637] to-[#FB9A2D] text-white font-semibold rounded-lg hover:from-[#d8852a] hover:to-[#e88a25] transition-all disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
             >
-              Book Storage
+              {actionLoadingKey === "book-storage-empty" && (
+                <span className="w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />
+              )}
+              {actionLoadingKey === "book-storage-empty"
+                ? "Loading..."
+                : "Book Storage"}
             </button>
           </div>
         ) : (
           <div className="space-y-4">
+            <div>
+              <h3 className="text-xl font-bold text-[#4c4946]">
+                Active Inventory Bookings
+              </h3>
+              <p className="text-sm text-gray-600">
+                Bookings currently stored or in active delivery workflow.
+              </p>
+            </div>
             {storedInventoryBookings.map((booking) => (
               <div
                 key={booking.id}
@@ -209,6 +314,15 @@ export default function DashboardPage() {
                       {booking.total.toFixed(2)}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
+                      {booking.orderStatus && (
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${getOrderStatusColor(
+                            booking.orderStatus,
+                          )}`}
+                        >
+                          {formatOrderStatus(booking.orderStatus)}
+                        </span>
+                      )}
                       {booking.items.slice(0, 5).map((item) => (
                         <span
                           key={`${booking.id}-${item.id}`}
@@ -221,16 +335,117 @@ export default function DashboardPage() {
                   </div>
 
                   <button
-                    onClick={() => router.push(`/bookings/${booking.id}`)}
-                    className="self-start px-4 py-2 text-sm font-medium text-[#f8992f] border border-[#f8992f] rounded-lg hover:bg-[#f8992f]/5 transition-colors"
+                    onClick={() =>
+                      handleNavigate(
+                        `stored-view-details-${booking.id}`,
+                        `/bookings/${booking.id}`,
+                      )
+                    }
+                    disabled={actionLoadingKey !== null}
+                    className="self-start px-4 py-2 text-sm font-medium text-[#f8992f] border border-[#f8992f] rounded-lg hover:bg-[#f8992f]/5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
                   >
-                    View Details
+                    {actionLoadingKey === `stored-view-details-${booking.id}` && (
+                      <span className="w-4 h-4 border-2 border-[#f8992f]/70 border-t-transparent rounded-full animate-spin" />
+                    )}
+                    {actionLoadingKey === `stored-view-details-${booking.id}`
+                      ? "Loading..."
+                      : "View Details"}
                   </button>
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        <div className="mt-8">
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <div>
+              <h3 className="text-xl font-bold text-[#4c4946]">
+                Previous Bookings
+              </h3>
+              <p className="text-sm text-gray-600">
+                Your most recent booking history.
+              </p>
+            </div>
+            <button
+              onClick={() => handleNavigate("history-view-all", "/bookings")}
+              disabled={actionLoadingKey !== null}
+              className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-[#ea9637] to-[#FB9A2D] rounded-lg hover:from-[#d8852a] hover:to-[#e88a25] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+            >
+              {actionLoadingKey === "history-view-all" && (
+                <span className="w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />
+              )}
+              {actionLoadingKey === "history-view-all" ? "Loading..." : "View All"}
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 space-y-3">
+              <div className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+              <div className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+              <div className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+            </div>
+          ) : previousBookings.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
+              <div className="rounded-xl border border-dashed border-gray-200 p-6 text-center">
+              <p className="text-gray-600">
+                No previous bookings yet. Create your first booking to see it
+                here.
+              </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 space-y-3">
+              {previousBookings.map((booking) => (
+                <div
+                  key={`history-${booking.id}`}
+                  className="rounded-xl border border-gray-100 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+                >
+                  <div>
+                    <p className="font-semibold text-[#4c4946]">
+                      {booking.bookingNumber}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(booking.createdAt).toLocaleDateString()} •{" "}
+                      {booking.items.length} item types • $
+                      {booking.total.toFixed(2)}
+                    </p>
+                    {booking.orderStatus ? (
+                      <span
+                        className={`inline-flex mt-2 px-3 py-1 rounded-full text-xs font-semibold ${getOrderStatusColor(
+                          booking.orderStatus,
+                        )}`}
+                      >
+                        {formatOrderStatus(booking.orderStatus)}
+                      </span>
+                    ) : (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Status: {booking.status}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() =>
+                      handleNavigate(
+                        `history-view-details-${booking.id}`,
+                        `/bookings/${booking.id}`,
+                      )
+                    }
+                    disabled={actionLoadingKey !== null}
+                    className="self-start px-4 py-2 text-sm font-medium text-[#f8992f] border border-[#f8992f] rounded-lg hover:bg-[#f8992f]/5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                  >
+                    {actionLoadingKey === `history-view-details-${booking.id}` && (
+                      <span className="w-4 h-4 border-2 border-[#f8992f]/70 border-t-transparent rounded-full animate-spin" />
+                    )}
+                    {actionLoadingKey === `history-view-details-${booking.id}`
+                      ? "Loading..."
+                      : "View Details"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

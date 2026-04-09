@@ -710,7 +710,7 @@ export default function ProfilePage() {
                   )}
                   {!phoneError && mobilePhoneNumber && phoneTouched && (
                     <p className="mt-1.5 text-xs text-emerald-600">
-                      Valid {countryName} number
+                      Valid +{countryInfo.dialCode} number
                     </p>
                   )}
                 </div>

@@ -484,12 +484,12 @@ export default function DeliveryInformationStep({
                   value={selectedCountry}
                   onChange={(e) => handleCountryChange(e.target.value as CountryCode)}
                   className="country-code-select pl-10 pr-6 py-3 appearance-none bg-transparent border-0 focus:outline-none cursor-pointer text-transparent hover:text-transparent transition"
-                  title={`${countryName} (+${countryInfo.dialCode})`}
+                  title={`+${countryInfo.dialCode}`}
                   style={{ width: '80px', color: 'transparent', borderRadius: '10px' }}
                 >
                   {allCountries.map((country) => (
                     <option key={country.code} value={country.code} className="bg-white text-gray-700">
-                      {country.name} (+{country.dialCode})
+                      +{country.dialCode} ({country.code})
                     </option>
                   ))}
                 </select>
@@ -543,7 +543,7 @@ export default function DeliveryInformationStep({
             )}
             {!phoneError && phone && phoneTouched && (
               <p className="mt-1 text-xs text-green-600">
-                ✓ Valid {countryName} phone number
+                ✓ Valid +{countryInfo.dialCode} phone number
               </p>
             )}
           </div>
