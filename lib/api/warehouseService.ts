@@ -41,10 +41,12 @@ export interface ResolveDeliveryFeeRequest {
   };
   lat?: number;
   lng?: number;
+  distanceChargesBufferMiles?: number;
 }
 
 export interface ResolveDeliveryFeeResponse {
   isServiceable: boolean;
+  distanceChargesBufferMiles?: number | null;
   // Legacy single-option fields (kept optional for backward compatibility)
   warehouseId?: string | null;
   warehouseName?: string | null;

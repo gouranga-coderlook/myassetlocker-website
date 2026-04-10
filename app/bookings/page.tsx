@@ -108,6 +108,16 @@ export default function BookingsPage() {
     });
   };
 
+  const formatDateWithFallbackTime = (dateString: string, fallbackTime?: string) => {
+    const hasTimeInDateString = /T\d{2}:\d{2}(:\d{2})?/.test(dateString);
+    const normalizedFallbackTime = fallbackTime?.trim();
+    const normalizedDateString =
+      !hasTimeInDateString && normalizedFallbackTime
+        ? `${dateString}T${normalizedFallbackTime}`
+        : dateString;
+    return formatDate(normalizedDateString);
+  };
+
   const handleViewDetails = async (booking: Booking) => {
     if (viewingDetailsId) return; // Prevent multiple clicks
 
@@ -261,7 +271,7 @@ export default function BookingsPage() {
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                       <span>
                         <span className="font-semibold">Placed:</span>{" "}
-                        {formatDate(booking.createdAt)}
+                        {formatDateWithFallbackTime(booking.createdAt, booking.startTime)}
                       </span>
                       <span>
                         <span className="font-semibold">Items:</span>{" "}

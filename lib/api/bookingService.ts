@@ -52,6 +52,7 @@ export interface Booking {
   bookingNumber: string;
   status: string;
   orderStatus?: string; // Order status for valet storage workflow
+  startTime?: string; // From /bookings/self (derived from booking.created_at)
   createdAt: string;
   updatedAt: string;
   items: BookingItem[];
@@ -244,6 +245,7 @@ interface ApiBooking {
   bookingNumber?: string;
   status?: string;
   orderStatus?: string; // Order status for valet storage workflow
+  startTime?: string;
   paymentStatus: string;
   startDate?: string;
   endDate?: string | null;
@@ -404,6 +406,7 @@ function transformApiBooking(apiBooking: ApiBooking): Booking {
     bookingNumber: generateBookingNumber(apiBooking.id),
     status: mapBookingStatus(apiBooking.status),
     orderStatus: apiBooking.orderStatus || undefined,
+    startTime: apiBooking.startTime || undefined,
     createdAt: apiBooking.createdAt || apiBooking.startDate || new Date().toISOString(),
     updatedAt: apiBooking.updatedAt || apiBooking.startDate || new Date().toISOString(),
     items: items,
@@ -589,6 +592,7 @@ function transformApiBookingDetail(apiBooking: ApiBooking): Booking {
     bookingNumber: apiBooking.bookingNumber || generateBookingNumber(apiBooking.id),
     status: mapBookingStatus(apiBooking.status),
     orderStatus: apiBooking.orderStatus || undefined,
+    startTime: apiBooking.startTime || undefined,
     createdAt: apiBooking.createdAt || apiBooking.startDate || new Date().toISOString(),
     updatedAt: apiBooking.updatedAt || apiBooking.startDate || new Date().toISOString(),
     items: items,
